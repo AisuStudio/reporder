@@ -4,7 +4,7 @@
 // photo, marker and chunk is written to IndexedDB the moment it exists.
 
 import { getTemplate, detectMarker, nameMarkersFromSegments } from './templates.js';
-import { addPhoto, addMarker, addSegment } from './session.js';
+import { addPhoto, addMarker, addSegment, pushLevel } from './session.js';
 import { getSession, putSession, putMedia, persist } from './storage.js';
 import { formatTimecode } from './time.js';
 
@@ -159,6 +159,7 @@ async function start() {
   btn.disabled = false;
   $('#btn-pause').disabled = false;
   requestWakeLock();
+  startLevels();
   status('Läuft. Bildschirm bleibt an, Fotos und Marker werden sofort gesichert.');
   if ($('#live-toggle').checked) startLive();
 }
@@ -191,6 +192,8 @@ async function stop() {
   $('#btn-main').disabled = true; $('#btn-pause').disabled = true; $('#btn-shutter').disabled = true;
   status('Wird gesichert …');
   stopLive();
+  stopLevels();
+  audioCtx?.close?.().catch(() => {});
   clock.accumulated = elapsed(); clock.running = false;
   session.durationMs = Math.round(clock.accumulated);
 
@@ -287,25 +290,65 @@ template.levels.forEach((name, level) => {
   const b = document.createElement('button');
   b.type = 'button';
   b.innerHTML = `${name}<small>drücken, dann sagen</small>`;
-  b.addEventListener('click', () => pressMarker(level));
+  b.addEventListener('click', () => pressMarker(level, 'section'));
   buttons.append(b);
 });
+// The third button: an event that belongs to the current section — a
+// remark, a person, a decision — and structures nothing.
+const other = document.createElement('button');
+other.type = 'button'; other.className = 'other';
+other.innerHTML = 'Anderes<small>Ereignis, keine Gliederung</small>';
+other.addEventListener('click', () => pressMarker(0, 'note'));
+buttons.append(other);
 
-async function pressMarker(level) {
+async function pressMarker(level, kind) {
   const t = elapsed();
-  addMarker(session, { t, title: '', level });
+  addMarker(session, { t, title: '', level, kind });
   pending.push(save());
-  toast(`${template.levels[level]} — jetzt den Namen sagen`, t);
+  toast(kind === 'note' ? 'Anderes — jetzt sagen, was' : `${template.levels[level]} — jetzt den Namen sagen`, t);
 }
 
 /** After a final transcript segment: name any press it belongs to. */
 function nameRecentPresses() {
   if (nameMarkersFromSegments(session.markers, session.segments, template) > 0) {
     const last = [...session.markers].reverse().find((m) => m.title);
-    if (last) toast(`${template.levels[last.level]}: ${last.title}`, last.t);
+    if (last) toast(`${last.kind === 'note' ? 'Anderes' : template.levels[last.level]}: ${last.title}`, last.t);
     pending.push(save());
   }
 }
+
+// --- loudness ---------------------------------------------------------------------------------
+// One sample every LEVEL_MS while recording, so the report can draw the
+// waveform without decoding an hour of audio on a phone.
+const LEVEL_MS = 250;
+let audioCtx = null;
+let analyser = null;
+let levelTimer = null;
+
+function startLevels() {
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
+    if (!analyser) {
+      analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 1024;
+      audioCtx.createMediaStreamSource(micStream).connect(analyser);
+    }
+    const buf = new Float32Array(analyser.fftSize);
+    clearInterval(levelTimer);
+    levelTimer = setInterval(() => {
+      if (phase !== 'recording') return;
+      analyser.getFloatTimeDomainData(buf);
+      let sum = 0;
+      for (let i = 0; i < buf.length; i++) sum += buf[i] * buf[i];
+      const rms = Math.sqrt(sum / buf.length);
+      // dBFS from -60 (silence) to 0 mapped onto 0..100; speech sits around 30-70.
+      const db = 20 * Math.log10(rms || 1e-6);
+      pushLevel(session, ((db + 60) / 60) * 100, LEVEL_MS);
+    }, LEVEL_MS);
+  } catch { /* no Web Audio: the report falls back to a plain line */ }
+}
+function stopLevels() { clearInterval(levelTimer); levelTimer = null; }
 
 // --- live transcript (experiment) -------------------------------------------------------------------
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;

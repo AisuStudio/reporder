@@ -77,13 +77,23 @@ let currentSections = [];
 function renderTimeline(sections) {
   currentSections = sections;
   const tl = $('#timeline');
-  tl.innerHTML = '';
+  [...tl.children].forEach((c) => { if (c.id !== 'wave') c.remove(); });
+  tl.classList.toggle('flat', !session.levels?.values?.length);
+  drawWave(audio.currentTime * 1000 || 0);
   for (const sec of sections) {
     if (!sec.path.length) continue;
     const el = document.createElement('div');
     el.className = 'tl-section' + (sec.source === 'spoken' ? ' spoken' : '') + (sec.level > 0 ? ' deep' : '');
     el.style.left = pct(sec.t);
     el.title = `${formatTimecode(sec.t)} · ${sectionTitle(sec)}`;
+    if (sec.level === 0) { const l = document.createElement('span'); l.className = 'lbl'; l.textContent = sec.path[0]; el.append(l); }
+    tl.append(el);
+  }
+  for (const mk of session.markers) {
+    if (mk.kind !== 'note') continue;
+    const el = document.createElement('div');
+    el.className = 'tl-note'; el.style.left = pct(mk.t);
+    el.title = `${formatTimecode(mk.t)} · ${mk.title || 'Anderes'}`;
     tl.append(el);
   }
   session.photos.forEach((p, i) => {
@@ -98,7 +108,40 @@ function renderTimeline(sections) {
   moveHead(audio.currentTime * 1000 || 0);
 }
 
+// The waveform from the levels sampled while recording. Played part black,
+// the rest grey. Cheap enough to redraw on every timeupdate.
+function drawWave(t) {
+  const canvas = $('#wave');
+  const values = session.levels?.values;
+  if (!canvas || !values?.length) return;
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  if (!w || !h) return;
+  if (canvas.width !== Math.round(w * dpr)) { canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr); }
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, w, h);
+  const step = session.levels.stepMs || 250;
+  const total = duration();
+  const bars = Math.min(Math.floor(w / 3), values.length);
+  const perBar = values.length / bars;
+  const playedX = (t / total) * w;
+  const css = getComputedStyle(document.documentElement);
+  const grey = css.getPropertyValue('--line').trim() || '#e2e2e2';
+  const black = css.getPropertyValue('--fg').trim() || '#1a1a1a';
+  for (let i = 0; i < bars; i++) {
+    let peak = 0;
+    for (let j = Math.floor(i * perBar); j < Math.floor((i + 1) * perBar); j++) peak = Math.max(peak, values[j] || 0);
+    const x = ((i * perBar * step) / total) * w;
+    const bh = Math.max(2, (peak / 100) * h);
+    ctx.fillStyle = x < playedX ? black : grey;
+    ctx.fillRect(x, (h - bh) / 2, 2, bh);
+  }
+}
+window.addEventListener('resize', () => drawWave(audio.currentTime * 1000 || 0));
+
 function moveHead(t) {
+  drawWave(t);
   const head = $('#tl-head');
   if (head) head.style.left = pct(t);
   const sec = [...currentSections].reverse().find((s) => s.t <= t && s.path.length);
@@ -181,7 +224,7 @@ async function render() {
       parent.textContent = sec.path.slice(0, -1).join(' · ') + ' · ';
       h2.append(parent);
     }
-    const marker = sec.markerId ? session.markers.find((m) => m.id === sec.markerId) : null;
+    const marker = sec.markerId ? session.markers.find((m) => m.id === sec.markerId && m.kind !== 'note') : null;
     if (marker) {
       // A pressed marker: its name is editable right here.
       const input = document.createElement('input');
@@ -229,7 +272,30 @@ async function render() {
       tc.title = 'Im Ton anspringen'; tc.addEventListener('click', () => seek(it.t));
       row.append(tc);
 
-      if (it.kind === 'text') {
+      if (it.kind === 'note') {
+        const mk = session.markers.find((m) => m.id === it.id);
+        const box = document.createElement('div'); box.className = 'item-note';
+        const p = document.createElement('p');
+        const kind = document.createElement('span'); kind.className = 'kind'; kind.textContent = 'Anderes';
+        const input = document.createElement('input');
+        input.type = 'text'; input.value = mk?.title || ''; input.maxLength = 200;
+        input.placeholder = 'Was war hier? Bemerkung, Person, Entscheidung …';
+        input.setAttribute('aria-label', 'Ereignis benennen');
+        input.addEventListener('change', () => { if (mk) { mk.title = input.value.trim(); save(); renderTimeline(currentSections); } });
+        p.append(kind, input);
+        box.append(p);
+        const tools = document.createElement('div'); tools.className = 'item-tools';
+        if (audioBlob) {
+          const play = document.createElement('button'); play.type = 'button'; play.className = 'link'; play.textContent = '6 s abspielen';
+          play.addEventListener('click', () => seek(it.t, 6000));
+          tools.append(play);
+        }
+        const del = document.createElement('button'); del.type = 'button'; del.className = 'link'; del.textContent = 'Entfernen';
+        del.addEventListener('click', () => { session.markers = session.markers.filter((m) => m.id !== it.id); save(); render(); });
+        tools.append(del);
+        box.append(tools);
+        row.append(box);
+      } else if (it.kind === 'text') {
         const seg = session.segments.find((s) => s.id === it.id);
         const box = document.createElement('div'); box.className = 'item-text';
         const p = document.createElement('p');

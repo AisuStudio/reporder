@@ -134,3 +134,27 @@ test('what is said right after a press does not open a second section', () => {
   assert.deepEqual(sections.map(sectionTitle), ['Zimmer 3']);
   assert.equal(sections[0].items.length, 2);
 });
+
+test('an "Anderes" marker is an event in the current section, never a section of its own', () => {
+  const markers = [
+    { id: 'm1', t: 1000, title: 'Erdgeschoss', level: 0, kind: 'section' },
+    { id: 'n1', t: 5000, title: '', level: 0, kind: 'note' },
+  ];
+  const segments = [{ t: 6000, text: 'Bauleiter sagt, die Tür kommt erst nächste Woche' }];
+  nameMarkersFromSegments(markers, segments, site);
+  assert.equal(markers[1].title, 'Bauleiter sagt, die Tür kommt erst nächste Woche');
+  const sections = outline({ segments, markers, template: site });
+  assert.deepEqual(sections.map(sectionTitle), ['Erdgeschoss']);
+  const note = sections[0].items.find((i) => i.kind === 'note');
+  assert.equal(note.id, 'n1');
+  assert.equal(note.t, 5000);
+});
+
+test('a room said after an "Anderes" press names the event, it does not become a room', () => {
+  const markers = [{ id: 'n1', t: 5000, title: '', level: 0, kind: 'note' }];
+  const segments = [{ t: 6000, text: 'Zimmer 3' }];
+  nameMarkersFromSegments(markers, segments, site);
+  assert.equal(markers[0].title, 'Zimmer 3');
+  const sections = outline({ segments, markers, template: site });
+  assert.deepEqual(sections.map(sectionTitle), ['Vorlauf']);
+});

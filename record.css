@@ -61,6 +61,7 @@ body.paused .rec-dot span { animation: none; background: #999; }
 }
 .marker-row button:hover { background: var(--soft); }
 .marker-row button:active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.marker-row button.other { border-style: dashed; }
 .marker-row button small { display: block; font-size: .72em; font-weight: 400; color: var(--muted); margin-top: 2px; }
 .marker-row button:active small { color: #fff; }
 .marker-hint { margin: 8px 0 0; font-size: .82em; }

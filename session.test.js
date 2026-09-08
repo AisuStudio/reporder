@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  FORMAT, VERSION, createSession, addPhoto, addMarker, addSegment, setPhotoSection, setPhotoNote,
+  FORMAT, VERSION, createSession, addPhoto, addMarker, addSegment, setPhotoSection, setPhotoNote, pushLevel,
   migrate, serialize, parse, photoFileName, audioFileName,
 } from './session.js';
 
@@ -42,6 +42,20 @@ test('moving a photo changes only the section, not its t', () => {
   setPhotoSection(s, p.id, null);
   assert.equal('sectionKey' in p, false);
   assert.throws(() => setPhotoSection(s, 'nope', 'x'), /unknown photo/);
+});
+
+test('markers from before there were kinds open sections, as they always did', () => {
+  const s = migrate({ format: FORMAT, version: 1, id: 's-1', createdAt: '2026-01-01T00:00:00Z', markers: [{ id: 'm', t: 5, title: 'Bad', level: 1 }] });
+  assert.equal(s.markers[0].kind, 'section');
+  assert.equal(s.levels, null);
+});
+
+test('levels are clamped samples that survive the round trip', () => {
+  const s = createSession();
+  pushLevel(s, 12.6); pushLevel(s, 140); pushLevel(s, -3);
+  assert.deepEqual(s.levels, { stepMs: 250, values: [13, 100, 0] });
+  assert.deepEqual(parse(serialize(s)).levels, s.levels);
+  assert.throws(() => addMarker(s, { t: 1, kind: 'weird' }), /unknown marker kind/);
 });
 
 test('an older or sparse v1 file gets defaults on open', () => {

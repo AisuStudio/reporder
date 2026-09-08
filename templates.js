@@ -127,12 +127,12 @@ export function nameMarkersFromSegments(markers, segments, template, { windowMs 
     if (mk.title) continue;
     const seg = sorted.find((sg) => sg.t >= mk.t && sg.t <= mk.t + windowMs && sg.text?.trim());
     if (!seg) continue;
-    const hit = detectMarker(seg.text, template);
+    const hit = mk.kind === 'note' ? null : detectMarker(seg.text, template);
     if (hit) {
       mk.title = hit.title;
       mk.level = hit.level;
     } else {
-      mk.title = seg.text.trim().split(/\s+/).slice(0, 4).join(' ');
+      mk.title = seg.text.trim().split(/\s+/).slice(0, mk.kind === 'note' ? 12 : 4).join(' ');
     }
     named++;
   }
@@ -153,11 +153,12 @@ export function outline({ segments = [], markers = [], photos = [], template }) 
 
   const events = [];
   for (const mk of markers) {
-    if (!Number.isFinite(mk.t)) continue;
+    if (!Number.isFinite(mk.t) || mk.kind === 'note') continue;
     const level = Math.min(Math.max(0, mk.level ?? depth - 1), depth - 1);
     events.push({ t: mk.t, level, title: mk.title || unnamedLabel(tpl, level), source: 'manual', markerId: mk.id, unnamed: !mk.title });
   }
-  const pressed = events.slice();
+  // Every press, section or note, may have been named by the phrase after it.
+  const pressed = markers.filter((mk) => Number.isFinite(mk.t)).map((mk) => ({ t: mk.t, unnamed: !mk.title, title: mk.title }));
   for (const seg of segments) {
     const hit = detectMarker(seg.text, tpl);
     if (!hit) continue;
@@ -199,6 +200,10 @@ export function outline({ segments = [], markers = [], photos = [], template }) 
   for (const p of photos) {
     const target = (p.sectionKey && byKey.get(p.sectionKey)) || sectionAt(p.t);
     target.items.push({ kind: 'photo', t: p.t, id: p.id });
+  }
+  for (const mk of markers) {
+    if (mk.kind !== 'note' || !Number.isFinite(mk.t)) continue;
+    sectionAt(mk.t).items.push({ kind: 'note', t: mk.t, id: mk.id, title: mk.title });
   }
   for (const s of sections) s.items.sort((a, b) => a.t - b.t);
 

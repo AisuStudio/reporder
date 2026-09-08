@@ -20,31 +20,53 @@ input.titel::placeholder { color: #bbb; }
 .player audio { width: 100%; max-width: 640px; display: block; }
 
 /* ------------------------------------------------------------- timeline */
-/* The recording as one line: coral strokes are sections, dots are photos,
- * the black stroke is where playback stands. Tap anywhere to jump. */
+/* The recording like a SoundCloud track: a waveform, coral strokes for
+ * sections, hollow marks for events ("Anderes"), dots for photos. What has
+ * been played is black, what is ahead is grey. Tap anywhere to jump. */
 .timeline {
-  position: relative; height: 56px; margin: 14px 0 0; max-width: 640px; cursor: pointer;
-  border-left: 1px solid var(--line); border-right: 1px solid var(--line);
+  position: relative; height: 96px; margin: 14px 0 0; max-width: 640px; cursor: pointer;
+  user-select: none; -webkit-user-select: none;
 }
-.timeline::before {
-  content: ''; position: absolute; left: 0; right: 0; top: 24px; height: 2px; background: var(--line);
+.wave { position: absolute; left: 0; right: 0; top: 18px; width: 100%; height: 56px; display: block; }
+.timeline.flat::before {
+  content: ''; position: absolute; left: 0; right: 0; top: 46px; height: 2px; background: var(--line);
 }
 .tl-section {
-  position: absolute; top: 6px; width: 2px; height: 26px; margin-left: -1px; background: var(--accent);
+  position: absolute; top: 12px; width: 2px; height: 66px; margin-left: -1px; background: var(--accent);
 }
 .tl-section.spoken { opacity: .6; }
-.tl-section.deep { top: 14px; height: 18px; }
+.tl-section.deep { top: 24px; height: 54px; }
+.tl-section .lbl {
+  position: absolute; top: -13px; left: 4px; font-size: 10px; line-height: 1; color: var(--accent);
+  white-space: nowrap; max-width: 90px; overflow: hidden; text-overflow: ellipsis;
+}
+.tl-note {
+  position: absolute; top: 2px; width: 10px; height: 10px; margin-left: -5px; border-radius: 50%;
+  border: 2px solid var(--accent); background: var(--bg); box-sizing: border-box;
+}
 .tl-photo {
-  position: absolute; top: 40px; width: 8px; height: 8px; margin-left: -4px; border-radius: 50%;
+  position: absolute; top: 82px; width: 8px; height: 8px; margin-left: -4px; border-radius: 50%;
   background: var(--fg); border: 1px solid var(--bg);
 }
 .tl-head {
-  position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--fg); display: none;
+  position: absolute; top: 12px; height: 66px; width: 2px; margin-left: -1px; background: var(--fg); display: none;
 }
 .timeline.playing .tl-head, .timeline.seeked .tl-head { display: block; }
-.tl-end { position: absolute; right: 4px; top: 28px; font-size: 10px; color: var(--muted); }
+.tl-end { position: absolute; right: 0; top: 78px; font-size: 10px; color: var(--muted); }
 .tl-now { margin: 6px 0 0; font-size: .86em; color: var(--muted); min-height: 1.4em; }
 .tl-now .tc { color: var(--fg); margin-right: 8px; }
+
+/* An event ("Anderes") inside a section. */
+.item-note p {
+  margin: 0; padding: 6px 10px; border-left: 3px solid var(--accent); background: var(--warn-bg);
+  border-radius: 0 var(--r) var(--r) 0;
+}
+.item-note input {
+  font: inherit; width: 100%; max-width: 560px; border: 0; background: transparent; padding: 0;
+}
+.item-note input:focus { outline: none; }
+.item-note input::placeholder { color: var(--muted); }
+.item-note .kind { font-size: .75em; text-transform: uppercase; letter-spacing: .05em; color: var(--accent); display: block; margin-bottom: 2px; }
 
 .actions.top { margin-top: 24px; margin-bottom: var(--block); padding-top: 18px; }
 
@@ -111,6 +133,9 @@ input.titel::placeholder { color: #bbb; }
   .timeline { cursor: default; break-inside: avoid; }
   .tl-section { background: #000; }
   .tl-section.spoken { opacity: 1; }
+  .tl-section .lbl { color: #000; }
+  .tl-note { border-color: #000; }
+  .item-note input { border: 0; }
   .print-only { display: block; }
   .wrap { max-width: none; padding: 0; }
   main { padding: 0; }
