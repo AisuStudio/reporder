@@ -3,7 +3,8 @@
 // never the events — a photo keeps its `t` wherever the user moves it.
 
 import { getTemplate, outline, sectionTitle, detectMarker, nameMarkersFromSegments } from './templates.js';
-import { addMarker, setPhotoSection, setPhotoNote, serialize, audioFileName } from './session.js';
+import { addMarker, setPhotoSection, setPhotoNote, serialize, audioFileName, photoFileName, exportManifest } from './session.js';
+import { buildZip } from './zip.js';
 import { getSession, putSession, getMedia, getAudioBlob } from './storage.js';
 import { formatTimecode, formatDate, fileStamp } from './time.js';
 
@@ -169,6 +170,43 @@ if (nameMarkersFromSegments(session.markers, session.segments, template) > 0) sa
 
 // --- actions ----------------------------------------------------------------------------
 $('#btn-print').addEventListener('click', () => window.print());
+
+// The folder that belongs to the user: protocol as JSON, audio and photos
+// as the original files. Readable with any file manager, with or without Reporder.
+function slug(text) {
+  return (text || '').toLowerCase().replace(/[äöüß]/g, (c) => ({ ä: 'ae', ö: 'oe', ü: 'ue', ß: 'ss' }[c]))
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
+}
+$('#btn-zip').addEventListener('click', async () => {
+  const btn = $('#btn-zip');
+  const note = $('#zip-note');
+  btn.disabled = true;
+  try {
+    const entries = [];
+    const manifest = exportManifest(session);
+    entries.push({ name: 'session.json', data: serialize(manifest), mtime: session.createdAt });
+    if (audioBlob) entries.push({ name: audioFileName(session), data: audioBlob, mtime: session.createdAt });
+    let n = 0;
+    for (const p of session.photos) {
+      note.textContent = `Foto ${++n} von ${session.photos.length} wird gepackt …`;
+      const blob = await getMedia(session.id, p.id);
+      if (blob) entries.push({ name: photoFileName(p), data: blob, mtime: session.createdAt });
+    }
+    note.textContent = 'ZIP wird gebaut …';
+    const { parts, size } = await buildZip(entries);
+    const zip = new Blob(parts, { type: 'application/zip' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(zip);
+    a.download = `${fileStamp(session.createdAt)}_reporder${session.title ? '_' + slug(session.title) : ''}.zip`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 30000);
+    note.textContent = `${entries.length} Dateien, ${(size / 1048576).toFixed(1)} MB. Inhalt: session.json, ${audioBlob ? audioFileName(session) + ', ' : ''}photos/.`;
+  } catch (err) {
+    note.textContent = `ZIP fehlgeschlagen: ${err.message}`;
+  } finally {
+    btn.disabled = false;
+  }
+});
 $('#btn-json').addEventListener('click', () => {
   const blob = new Blob([serialize(session)], { type: 'application/json' });
   const a = document.createElement('a');

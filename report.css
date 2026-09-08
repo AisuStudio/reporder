@@ -71,6 +71,7 @@ input.titel::placeholder { color: #bbb; }
 .item-note .kind { font-size: .75em; text-transform: uppercase; letter-spacing: .05em; color: var(--accent); display: block; margin-bottom: 2px; }
 
 .actions.top { margin-top: 24px; margin-bottom: var(--block); padding-top: 18px; }
+.zip-note { flex-basis: 100%; margin: 0; }
 
 /* ------------------------------------------------------------- sections */
 .section { margin: 0 0 var(--block); }

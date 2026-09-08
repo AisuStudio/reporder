@@ -5,7 +5,7 @@ const SHELL = [
   './', './index.html', './record.html', './report.html',
   './styles.css', './record.css', './report.css',
   './index.js', './record.js', './report.js',
-  './session.js', './templates.js', './storage.js', './time.js',
+  './session.js', './templates.js', './zip.js', './storage.js', './time.js',
   './manifest.webmanifest',
   './fonts/Rubik-Variable.ttf', './fonts/Rubik-Italic-Variable.ttf', './fonts/RubikMonoOne-Regular.ttf',
   './icons/icon.svg', './icons/mark.svg', './icons/logo.svg', './icons/icon-512.png', './icons/maskable-512.png', './icons/apple-touch-icon.png',

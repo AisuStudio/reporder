@@ -51,9 +51,9 @@ die Nutzerin ihren eigenen Cloud-Speicher anbinden; Reporder betreibt keinen.
 
 | Phase | Inhalt | Stand |
 |---|---|---|
-| 1 | PWA: Aufnahme, Foto mit Zeitcode, Marker, Bericht, Drucken | in Arbeit |
+| 1 | PWA: Aufnahme, Foto mit Zeitcode, Marker, Bericht, Drucken | gebaut, im Test |
 | 2 | Transkription nach der Aufnahme, Marker aus dem Transkript | offen |
-| 3 | Export als Ordner, eigener Cloud-Speicher der Nutzerin | offen |
+| 3 | Export als ZIP (Protokoll, Ton, Fotos) — gebaut; eigener Cloud-Speicher der Nutzerin | teilweise |
 | 4 | Native Hülle (Capacitor) für Aufnahme bei gesperrtem Bildschirm | offen |
 | 5 | Raumscan über RoomPlan auf iPhone Pro, Fotos am Grundriss | offen |
 
@@ -67,6 +67,7 @@ die Nutzerin ihren eigenen Cloud-Speicher anbinden; Reporder betreibt keinen.
 | `session.js` | Sitzungsformat, Versionierung, Migration |
 | `templates.js` | Vorlagen für die Gliederung und ihre Marker |
 | `storage.js` | IndexedDB |
+| `zip.js` | ZIP-Schreiber ohne Abhängigkeiten für den Export |
 | `styles.css` | Gestaltung: MnS-System (Rubik, Koralle) |
 | `sw.js`, `manifest.webmanifest` | Installierbar, offline |
 | `*.test.js` | Tests — `npm test` |

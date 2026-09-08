@@ -123,6 +123,18 @@ export function pushLevel(session, value, stepMs = 250) {
   return session.levels.values.length;
 }
 
+/**
+ * The session as it goes into the exported folder: the same JSON, with a
+ * `file` next to every photo and the audio, so the folder explains itself.
+ */
+export function exportManifest(session) {
+  const out = structuredClone(session);
+  out.exportedAt = new Date().toISOString();
+  for (const p of out.photos) p.file = photoFileName(p);
+  if (out.audio) out.audio.file = audioFileName(out);
+  return out;
+}
+
 /** File name a photo gets in the exported folder. */
 export function photoFileName(photo) {
   const ext = photo.type === 'image/png' ? 'png' : 'jpg';

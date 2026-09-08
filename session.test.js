@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  FORMAT, VERSION, createSession, addPhoto, addMarker, addSegment, setPhotoSection, setPhotoNote, pushLevel,
+  FORMAT, VERSION, createSession, addPhoto, addMarker, addSegment, setPhotoSection, setPhotoNote, pushLevel, exportManifest,
   migrate, serialize, parse, photoFileName, audioFileName,
 } from './session.js';
 
@@ -89,4 +89,16 @@ test('a photo carries its entry, and an empty entry leaves no trace', () => {
   setPhotoNote(s, p.id, '   ');
   assert.equal('note' in p, false);
   assert.throws(() => setPhotoNote(s, 'nope', 'x'), /unknown photo/);
+});
+
+test('the export manifest names its files and still opens as a session', () => {
+  const s = createSession({ title: 'X' });
+  s.audio = { type: 'audio/mp4', chunks: 3 };
+  const p = addPhoto(s, { t: 100 });
+  const m = exportManifest(s);
+  assert.equal(m.photos[0].file, `photos/${p.id}.jpg`);
+  assert.equal(m.audio.file, 'audio.m4a');
+  assert.ok(m.exportedAt);
+  assert.equal(s.photos[0].file, undefined, 'the live session is untouched');
+  assert.equal(parse(serialize(m)).photos[0].file, m.photos[0].file);
 });
