@@ -1,6 +1,6 @@
 // Service worker: makes Reporder installable and lets the shell load without
 // network. Only the app's own files are cached — there is nothing else to fetch.
-const CACHE = 'reporder-v1';
+const CACHE = 'reporder-v2';
 const SHELL = [
   './', './index.html', './record.html', './report.html',
   './styles.css', './record.css', './report.css',
@@ -8,7 +8,7 @@ const SHELL = [
   './session.js', './templates.js', './storage.js', './time.js',
   './manifest.webmanifest',
   './fonts/Rubik-Variable.ttf', './fonts/Rubik-Italic-Variable.ttf', './fonts/RubikMonoOne-Regular.ttf',
-  './icons/icon.svg', './icons/icon-512.png', './icons/maskable-512.png', './icons/apple-touch-icon.png',
+  './icons/icon.svg', './icons/mark.svg', './icons/icon-512.png', './icons/maskable-512.png', './icons/apple-touch-icon.png',
 ];
 
 self.addEventListener('install', (event) => {
