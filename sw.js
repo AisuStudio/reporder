@@ -1,6 +1,6 @@
 // Service worker: makes Reporder installable and lets the shell load without
 // network. Only the app's own files are cached — there is nothing else to fetch.
-const CACHE = 'reporder-v3';
+const CACHE = 'reporder-v4';
 const SHELL = [
   './', './index.html', './record.html', './report.html',
   './styles.css', './record.css', './report.css',
