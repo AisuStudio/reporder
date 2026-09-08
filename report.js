@@ -83,10 +83,13 @@ function renderTimeline(sections) {
   for (const sec of sections) {
     if (!sec.path.length) continue;
     const el = document.createElement('div');
-    el.className = 'tl-section' + (sec.source === 'spoken' ? ' spoken' : '') + (sec.level > 0 ? ' deep' : '');
+    // Stroke height by depth: the deepest level of any template is the shortest.
+    const depth = template.levels.length;
+    const lvl = Math.max(0, Math.min(2, sec.level + (3 - depth)));
+    el.className = 'tl-section' + (sec.source === 'spoken' ? ' spoken' : '') + ` lvl-${lvl}`;
     el.style.left = pct(sec.t);
     el.title = `${formatTimecode(sec.t)} · ${sectionTitle(sec)}`;
-    if (sec.level === 0) { const l = document.createElement('span'); l.className = 'lbl'; l.textContent = sec.path[0]; el.append(l); }
+    if (sec.level < depth - 1) { const l = document.createElement('span'); l.className = 'lbl'; l.textContent = sec.path.at(-1); el.append(l); }
     tl.append(el);
   }
   for (const mk of session.markers) {

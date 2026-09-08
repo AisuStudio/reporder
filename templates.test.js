@@ -4,19 +4,46 @@ import { TEMPLATES, detectMarker, outline, sectionTitle, nameMarkersFromSegments
 
 const site = TEMPLATES.site;
 
+test('a place — building, garage, garden, neighbour — is the top level', () => {
+  assert.deepEqual(detectMarker('Nachbarhaus', site), { level: 0, title: 'Nachbarhaus' });
+  assert.deepEqual(detectMarker('so, Garage', site), { level: 0, title: 'Garage' });
+  assert.deepEqual(detectMarker('Garten', site), { level: 0, title: 'Garten' });
+  assert.deepEqual(detectMarker('Baustelle', site), { level: 0, title: 'Baustelle' });
+  assert.deepEqual(detectMarker('Haus 2', site), { level: 0, title: 'Haus 2' });
+  assert.deepEqual(detectMarker('Gebäude B', site), { level: 0, title: 'Gebäude B' });
+  assert.deepEqual(detectMarker('Bauabschnitt 3', site), { level: 0, title: 'Bauabschnitt 3' });
+});
+
 test('a floor said at the start of a sentence opens a floor section', () => {
-  assert.deepEqual(detectMarker('Erster Stock', site), { level: 0, title: '1. Obergeschoss' });
-  assert.deepEqual(detectMarker('zweites Obergeschoss, hier', site), { level: 0, title: '2. Obergeschoss' });
-  assert.deepEqual(detectMarker('3. Etage', site), { level: 0, title: '3. Obergeschoss' });
-  assert.deepEqual(detectMarker('Erdgeschoss', site), { level: 0, title: 'Erdgeschoss' });
-  assert.deepEqual(detectMarker('so, Keller', site), { level: 0, title: 'Keller' });
+  assert.deepEqual(detectMarker('Erster Stock', site), { level: 1, title: '1. Obergeschoss' });
+  assert.deepEqual(detectMarker('zweites Obergeschoss, hier', site), { level: 1, title: '2. Obergeschoss' });
+  assert.deepEqual(detectMarker('3. Etage', site), { level: 1, title: '3. Obergeschoss' });
+  assert.deepEqual(detectMarker('Erdgeschoss', site), { level: 1, title: 'Erdgeschoss' });
+  assert.deepEqual(detectMarker('so, Keller', site), { level: 1, title: 'Keller' });
+  assert.deepEqual(detectMarker('Dachgeschoss', site), { level: 1, title: 'Dachgeschoss' });
 });
 
 test('a room opens a room section and keeps its number', () => {
-  assert.deepEqual(detectMarker('Zimmer 3', site), { level: 1, title: 'Zimmer 3' });
-  assert.deepEqual(detectMarker('Raum Nr. 12a', site), { level: 1, title: 'Raum 12A' });
-  assert.deepEqual(detectMarker('jetzt das Bad', site), { level: 1, title: 'Bad' });
-  assert.deepEqual(detectMarker('Treppenhaus', site), { level: 1, title: 'Treppenhaus' });
+  assert.deepEqual(detectMarker('Zimmer 3', site), { level: 2, title: 'Zimmer 3' });
+  assert.deepEqual(detectMarker('Raum Nr. 12a', site), { level: 2, title: 'Raum 12A' });
+  assert.deepEqual(detectMarker('jetzt das Bad', site), { level: 2, title: 'Bad' });
+  assert.deepEqual(detectMarker('Treppenhaus', site), { level: 2, title: 'Treppenhaus' });
+});
+
+test('a floor keeps the place, a new place resets the floor', () => {
+  const segments = [
+    { t: 1000, text: 'Nachbarhaus' },
+    { t: 2000, text: 'Erster Stock' },
+    { t: 3000, text: 'Bad' },
+    { t: 4000, text: 'Garage' },
+  ];
+  const sections = outline({ segments, template: site });
+  assert.deepEqual(sections.map(sectionTitle), ['Nachbarhaus', 'Nachbarhaus · 1. Obergeschoss', 'Nachbarhaus · 1. Obergeschoss · Bad', 'Garage']);
+});
+
+test('without a place the path simply starts at the floor', () => {
+  const sections = outline({ segments: [{ t: 0, text: 'Erdgeschoss' }, { t: 5000, text: 'Küche' }], template: site });
+  assert.deepEqual(sections.map(sectionTitle), ['Erdgeschoss', 'Erdgeschoss · Küche']);
 });
 
 test('a room mentioned mid-sentence is a finding, not a marker', () => {
@@ -25,12 +52,12 @@ test('a room mentioned mid-sentence is a finding, not a marker', () => {
 });
 
 test('a few lead words before the marker are fine', () => {
-  assert.deepEqual(detectMarker('weiter im ersten Stock', site), { level: 0, title: '1. Obergeschoss' });
-  assert.deepEqual(detectMarker('okay, jetzt Zimmer 4', site), { level: 1, title: 'Zimmer 4' });
+  assert.deepEqual(detectMarker('weiter im ersten Stock', site), { level: 1, title: '1. Obergeschoss' });
+  assert.deepEqual(detectMarker('okay, jetzt Zimmer 4', site), { level: 2, title: 'Zimmer 4' });
 });
 
 test('floor and room in one breath: the floor wins, the room is the next marker', () => {
-  assert.deepEqual(detectMarker('Erster Stock Zimmer 2', site), { level: 0, title: '1. Obergeschoss' });
+  assert.deepEqual(detectMarker('Erster Stock Zimmer 2', site), { level: 1, title: '1. Obergeschoss' });
 });
 
 test('the landscape template has its own vocabulary', () => {
@@ -76,7 +103,7 @@ test('a new floor resets the room', () => {
 
 test('manual markers and spoken markers merge in time order', () => {
   const segments = [{ t: 5000, text: 'Zimmer 1' }];
-  const markers = [{ t: 1000, title: 'Erdgeschoss', level: 0 }];
+  const markers = [{ t: 1000, title: 'Erdgeschoss', level: 1 }];
   const sections = outline({ segments, markers, template: site });
   assert.deepEqual(sections.map(sectionTitle), ['Erdgeschoss', 'Erdgeschoss · Zimmer 1']);
   assert.equal(sections[0].source, 'manual');
@@ -99,26 +126,26 @@ test('the lead-in section is hidden when nothing happened before the first marke
 });
 
 test('a pressed marker takes its name from what is said right after the press', () => {
-  const markers = [{ id: 'm1', t: 10000, title: '', level: 1 }, { id: 'm2', t: 50000, title: '', level: 0 }];
+  const markers = [{ id: 'm1', t: 10000, title: '', level: 2 }, { id: 'm2', t: 50000, title: '', level: 1 }];
   const segments = [
     { t: 11500, text: 'Zimmer 3' },
     { t: 15000, text: 'Putz abgeplatzt' },
     { t: 52000, text: 'Erster Stock' },
   ];
   assert.equal(nameMarkersFromSegments(markers, segments, site), 2);
-  assert.deepEqual(markers[0], { id: 'm1', t: 10000, title: 'Zimmer 3', level: 1 });
-  assert.deepEqual(markers[1], { id: 'm2', t: 50000, title: '1. Obergeschoss', level: 0 });
+  assert.deepEqual(markers[0], { id: 'm1', t: 10000, title: 'Zimmer 3', level: 2 });
+  assert.deepEqual(markers[1], { id: 'm2', t: 50000, title: '1. Obergeschoss', level: 1 });
 });
 
 test('a press followed by free speech keeps the first words as its name', () => {
-  const markers = [{ id: 'm1', t: 10000, title: '', level: 1 }];
+  const markers = [{ id: 'm1', t: 10000, title: '', level: 2 }];
   const segments = [{ t: 12000, text: 'Hausanschluss hinten links, Wasser steht' }];
   nameMarkersFromSegments(markers, segments, site);
   assert.equal(markers[0].title, 'Hausanschluss hinten links, Wasser');
 });
 
 test('a press with nothing said within the window stays unnamed and still shows', () => {
-  const markers = [{ id: 'm1', t: 10000, title: '', level: 1 }];
+  const markers = [{ id: 'm1', t: 10000, title: '', level: 2 }];
   const segments = [{ t: 30000, text: 'Zimmer 3' }];
   assert.equal(nameMarkersFromSegments(markers, segments, site), 0);
   const sections = outline({ segments, markers, template: site });
@@ -128,7 +155,7 @@ test('a press with nothing said within the window stays unnamed and still shows'
 });
 
 test('what is said right after a press does not open a second section', () => {
-  const markers = [{ id: 'm1', t: 10000, title: 'Zimmer 3', level: 1 }];
+  const markers = [{ id: 'm1', t: 10000, title: 'Zimmer 3', level: 2 }];
   const segments = [{ t: 11500, text: 'Zimmer 3' }, { t: 14000, text: 'Riss in der Decke' }];
   const sections = outline({ segments, markers, template: site });
   assert.deepEqual(sections.map(sectionTitle), ['Zimmer 3']);
@@ -137,7 +164,7 @@ test('what is said right after a press does not open a second section', () => {
 
 test('an "Anderes" marker is an event in the current section, never a section of its own', () => {
   const markers = [
-    { id: 'm1', t: 1000, title: 'Erdgeschoss', level: 0, kind: 'section' },
+    { id: 'm1', t: 1000, title: 'Erdgeschoss', level: 1, kind: 'section' },
     { id: 'n1', t: 5000, title: '', level: 0, kind: 'note' },
   ];
   const segments = [{ t: 6000, text: 'Bauleiter sagt, die Tür kommt erst nächste Woche' }];

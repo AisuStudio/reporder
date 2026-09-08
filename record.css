@@ -54,7 +54,7 @@ body.paused .rec-dot span { animation: none; background: #999; }
 
 /* ----------------------------------------------------------------- marker */
 .marker { margin: 16px 0 0; padding-top: 14px; border-top: 1px solid var(--line); }
-.marker-row { display: flex; gap: 8px; }
+.marker-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; }
 .marker-row button {
   flex: 1; min-width: 0; padding: 13px 10px; background: transparent; color: var(--fg);
   border: 1px solid var(--fg); font-size: 1em;

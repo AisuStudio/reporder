@@ -35,7 +35,9 @@ input.titel::placeholder { color: #bbb; }
   position: absolute; top: 12px; width: 2px; height: 66px; margin-left: -1px; background: var(--accent);
 }
 .tl-section.spoken { opacity: .6; }
-.tl-section.deep { top: 24px; height: 54px; }
+.tl-section.lvl-1 { top: 22px; height: 56px; }
+.tl-section.lvl-2 { top: 34px; height: 44px; }
+.tl-section.lvl-1 .lbl { font-size: 9px; color: var(--fg); }
 .tl-section .lbl {
   position: absolute; top: -13px; left: 4px; font-size: 10px; line-height: 1; color: var(--accent);
   white-space: nowrap; max-width: 90px; overflow: hidden; text-overflow: ellipsis;

@@ -28,16 +28,20 @@ export const TEMPLATES = {
   site: {
     id: 'site',
     name: 'Bau · Begehung',
-    levels: ['Geschoss', 'Raum'],
-    hint: 'Sag z. B. „Erdgeschoss", „Erster Stock", „Zimmer 3", „Bad", „Treppenhaus".',
+    levels: ['Ort', 'Geschoss', 'Raum'],
+    hint: 'Ort: „Nachbarhaus", „Garage", „Garten", „Haus 2". Geschoss: „Erdgeschoss", „Erster Stock". Raum: „Zimmer 3", „Bad".',
     markers: [
-      m(0, /\b(erdgeschoss|parterre)\b/i, () => 'Erdgeschoss'),
-      m(0, /\b(kellergeschoss|keller|untergeschoss|tiefgarage)\b/i, (x) => cap(x[1])),
-      m(0, /\b(dachgeschoss|dachboden|dach)\b/i, (x) => cap(x[1])),
-      m(0, /\b(erste[rsn]?|zweite[rsn]?|dritte[rsn]?|vierte[rsn]?|fünfte[rsn]?|fuenfte[rsn]?|sechste[rsn]?|siebte[rsn]?|achte[rsn]?|neunte[rsn]?|zehnte[rsn]?|\d{1,2})\.?\s+(stockwerk|stock|obergeschoss|etage|og)\b/i,
+      // Level 0 — the place: a building, a part of the site, the neighbour.
+      m(0, /\b(nachbarhaus|nachbargebäude|nachbargrundstück|nebengebäude|hauptgebäude|haupthaus|anbau|neubau|altbau|bestand|garage|carport|garten|hof|innenhof|hinterhof|vorgarten|außenanlagen|außenanlage|außenbereich|baustelle|grundstück|zufahrt|parkplatz|straße|gehweg|dach)\b/i, (x) => cap(x[1])),
+      m(0, /\b(haus|gebäude|bauteil|block|halle|wohnung|einheit|bauabschnitt)\s+(?:(?:nummer|nr\.?)\s*)?([a-z]|\d{1,3}[a-z]?)\b/i, (x) => `${cap(x[1])} ${x[2].toUpperCase()}`),
+      // Level 1 — the floor.
+      m(1, /\b(erdgeschoss|parterre)\b/i, () => 'Erdgeschoss'),
+      m(1, /\b(kellergeschoss|keller|untergeschoss|tiefgarage|souterrain)\b/i, (x) => cap(x[1])),
+      m(1, /\b(dachgeschoss|dachboden|spitzboden|staffelgeschoss)\b/i, (x) => cap(x[1])),
+      m(1, /\b(erste[rsn]?|zweite[rsn]?|dritte[rsn]?|vierte[rsn]?|fünfte[rsn]?|fuenfte[rsn]?|sechste[rsn]?|siebte[rsn]?|achte[rsn]?|neunte[rsn]?|zehnte[rsn]?|\d{1,2})\.?\s+(stockwerk|stock|obergeschoss|etage|og)\b/i,
         (x) => { const n = ordinal(x[1]); return n == null ? null : `${n}. Obergeschoss`; }),
-      m(0, /\b(außenanlagen|außenanlage|außenbereich|fassade|hof|garten)\b/i, (x) => cap(x[1])),
-      m(1, /\b(zimmer|raum|büro|badezimmer|bad|küche|flur|diele|treppenhaus|toilette|wc|abstellraum|technikraum|hausanschlussraum|heizungsraum|balkon|terrasse|loggia|wohnung|schlafzimmer|wohnzimmer|kinderzimmer|besprechungsraum|lager|garage|waschküche|aufzug)\b\s*(?:(?:nummer|nr\.?)\s*)?([a-z]?\d+[a-z]?)?/i,
+      // Level 2 — the room.
+      m(2, /\b(zimmer|raum|büro|badezimmer|bad|küche|flur|diele|treppenhaus|toilette|wc|abstellraum|technikraum|hausanschlussraum|heizungsraum|balkon|terrasse|loggia|schlafzimmer|wohnzimmer|kinderzimmer|besprechungsraum|lager|waschküche|aufzug|eingang|windfang)\b\s*(?:(?:nummer|nr\.?)\s*)?([a-z]?\d+[a-z]?)?/i,
         (x) => (x[2] ? `${cap(x[1])} ${x[2].toUpperCase()}` : cap(x[1]))),
     ],
   },
