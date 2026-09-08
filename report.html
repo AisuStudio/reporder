@@ -36,9 +36,11 @@
       <div><dt>Fotos</dt><dd id="fact-photos"></dd></div>
       <div><dt>Vorlage</dt><dd id="fact-template"></dd></div>
     </dl>
-    <div class="player no-print" id="player">
-      <audio id="audio" controls preload="metadata"></audio>
-      <p class="hint" id="audio-note" hidden></p>
+    <div class="player" id="player">
+      <audio class="no-print" id="audio" controls preload="metadata"></audio>
+      <p class="hint no-print" id="audio-note" hidden></p>
+      <div class="timeline" id="timeline" role="group" aria-label="Zeitachse der Aufnahme"></div>
+      <p class="tl-now no-print" id="tl-now" aria-live="off"></p>
     </div>
   </section>
 

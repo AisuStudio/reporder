@@ -62,7 +62,60 @@ function seek(t, forMs = null) {
   stopAt = forMs ? (t + forMs) / 1000 : null;
   audio.play().catch(() => {});
 }
-audio.addEventListener('timeupdate', () => { if (stopAt != null && audio.currentTime >= stopAt) { audio.pause(); stopAt = null; } });
+audio.addEventListener('timeupdate', () => {
+  if (stopAt != null && audio.currentTime >= stopAt) { audio.pause(); stopAt = null; }
+  moveHead(audio.currentTime * 1000);
+});
+audio.addEventListener('play', () => $('#timeline').classList.add('playing'));
+audio.addEventListener('pause', () => $('#timeline').classList.remove('playing'));
+
+// --- timeline -------------------------------------------------------------------------
+const duration = () => Math.max(session.durationMs, ...session.photos.map((p) => p.t), ...session.markers.map((m) => m.t), 1000);
+const pct = (t) => `${Math.min(100, Math.max(0, (t / duration()) * 100))}%`;
+let currentSections = [];
+
+function renderTimeline(sections) {
+  currentSections = sections;
+  const tl = $('#timeline');
+  tl.innerHTML = '';
+  for (const sec of sections) {
+    if (!sec.path.length) continue;
+    const el = document.createElement('div');
+    el.className = 'tl-section' + (sec.source === 'spoken' ? ' spoken' : '') + (sec.level > 0 ? ' deep' : '');
+    el.style.left = pct(sec.t);
+    el.title = `${formatTimecode(sec.t)} · ${sectionTitle(sec)}`;
+    tl.append(el);
+  }
+  session.photos.forEach((p, i) => {
+    const el = document.createElement('div');
+    el.className = 'tl-photo'; el.style.left = pct(p.t);
+    el.title = `${formatTimecode(p.t)} · Foto ${i + 1}`;
+    tl.append(el);
+  });
+  const end = document.createElement('span'); end.className = 'tl-end tc'; end.textContent = formatTimecode(duration());
+  const head = document.createElement('div'); head.className = 'tl-head'; head.id = 'tl-head';
+  tl.append(end, head);
+  moveHead(audio.currentTime * 1000 || 0);
+}
+
+function moveHead(t) {
+  const head = $('#tl-head');
+  if (head) head.style.left = pct(t);
+  const sec = [...currentSections].reverse().find((s) => s.t <= t && s.path.length);
+  const now = $('#tl-now');
+  now.innerHTML = '';
+  if (!audioBlob) { now.textContent = 'Striche sind Abschnitte, Punkte sind Fotos.'; return; }
+  const tc = document.createElement('span'); tc.className = 'tc'; tc.textContent = formatTimecode(t);
+  now.append(tc, document.createTextNode(sec ? sectionTitle(sec) : 'Vorlauf'));
+}
+
+$('#timeline').addEventListener('click', (e) => {
+  const r = e.currentTarget.getBoundingClientRect();
+  const t = ((e.clientX - r.left) / r.width) * duration();
+  $('#timeline').classList.add('seeked');
+  seek(Math.max(0, t));
+  moveHead(t);
+});
 
 // Presses that never got a name from the live transcript: try again with
 // whatever text exists now (edits, later transcription).
@@ -115,6 +168,7 @@ async function render() {
   const root = $('#sections');
   root.innerHTML = '';
   $('#empty-note').hidden = sections.some((s) => s.path.length > 0);
+  renderTimeline(sections);
 
   for (const sec of sections) {
     const el = document.createElement('section');
