@@ -54,11 +54,17 @@ body.paused .rec-dot span { animation: none; background: #999; }
 
 /* ----------------------------------------------------------------- marker */
 .marker { margin: 16px 0 0; padding-top: 14px; border-top: 1px solid var(--line); }
-.marker .modes { margin-bottom: 8px; }
 .marker-row { display: flex; gap: 8px; }
-.marker-row input { max-width: none; flex: 1; min-width: 0; }
-.marker-row button { white-space: nowrap; }
+.marker-row button {
+  flex: 1; min-width: 0; padding: 13px 10px; background: transparent; color: var(--fg);
+  border: 1px solid var(--fg); font-size: 1em;
+}
+.marker-row button:hover { background: var(--soft); }
+.marker-row button:active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.marker-row button small { display: block; font-size: .72em; font-weight: 400; color: var(--muted); margin-top: 2px; }
+.marker-row button:active small { color: #fff; }
 .marker-hint { margin: 8px 0 0; font-size: .82em; }
+.live summary .tag.on { border-color: var(--accent); color: var(--accent); }
 
 /* ------------------------------------------------------------------- live */
 .live { margin: 14px 0 0; border: 1px solid var(--line); border-radius: var(--r); padding: 10px 14px; font-size: .92em; }

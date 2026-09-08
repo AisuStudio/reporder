@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { TEMPLATES, detectMarker, outline, sectionTitle } from './templates.js';
+import { TEMPLATES, detectMarker, outline, sectionTitle, nameMarkersFromSegments } from './templates.js';
 
 const site = TEMPLATES.site;
 
@@ -96,4 +96,41 @@ test('a photo the user moved stays where it was put, and keeps its t', () => {
 test('the lead-in section is hidden when nothing happened before the first marker', () => {
   const sections = outline({ segments: [{ t: 0, text: 'Erdgeschoss' }], template: site });
   assert.deepEqual(sections.map(sectionTitle), ['Erdgeschoss']);
+});
+
+test('a pressed marker takes its name from what is said right after the press', () => {
+  const markers = [{ id: 'm1', t: 10000, title: '', level: 1 }, { id: 'm2', t: 50000, title: '', level: 0 }];
+  const segments = [
+    { t: 11500, text: 'Zimmer 3' },
+    { t: 15000, text: 'Putz abgeplatzt' },
+    { t: 52000, text: 'Erster Stock' },
+  ];
+  assert.equal(nameMarkersFromSegments(markers, segments, site), 2);
+  assert.deepEqual(markers[0], { id: 'm1', t: 10000, title: 'Zimmer 3', level: 1 });
+  assert.deepEqual(markers[1], { id: 'm2', t: 50000, title: '1. Obergeschoss', level: 0 });
+});
+
+test('a press followed by free speech keeps the first words as its name', () => {
+  const markers = [{ id: 'm1', t: 10000, title: '', level: 1 }];
+  const segments = [{ t: 12000, text: 'Hausanschluss hinten links, Wasser steht' }];
+  nameMarkersFromSegments(markers, segments, site);
+  assert.equal(markers[0].title, 'Hausanschluss hinten links, Wasser');
+});
+
+test('a press with nothing said within the window stays unnamed and still shows', () => {
+  const markers = [{ id: 'm1', t: 10000, title: '', level: 1 }];
+  const segments = [{ t: 30000, text: 'Zimmer 3' }];
+  assert.equal(nameMarkersFromSegments(markers, segments, site), 0);
+  const sections = outline({ segments, markers, template: site });
+  assert.deepEqual(sections.map(sectionTitle), ['Raum · ohne Namen', 'Zimmer 3']);
+  assert.equal(sections[0].unnamed, true);
+  assert.equal(sections[0].markerId, 'm1');
+});
+
+test('what is said right after a press does not open a second section', () => {
+  const markers = [{ id: 'm1', t: 10000, title: 'Zimmer 3', level: 1 }];
+  const segments = [{ t: 11500, text: 'Zimmer 3' }, { t: 14000, text: 'Riss in der Decke' }];
+  const sections = outline({ segments, markers, template: site });
+  assert.deepEqual(sections.map(sectionTitle), ['Zimmer 3']);
+  assert.equal(sections[0].items.length, 2);
 });

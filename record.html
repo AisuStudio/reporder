@@ -39,17 +39,13 @@
   <ul class="strip" id="strip" aria-label="Fotos dieser Aufnahme"></ul>
 
   <div class="marker" id="marker-panel">
-    <div class="modes" id="marker-levels" role="group" aria-label="Ebene"></div>
-    <div class="marker-row">
-      <input type="text" id="marker-title" placeholder="Abschnitt, z. B. Zimmer 3" maxlength="80" autocomplete="off" enterkeyhint="done">
-      <button type="button" class="secondary" id="marker-set">Marker</button>
-    </div>
+    <div class="marker-row" id="marker-buttons" role="group" aria-label="Marker setzen"></div>
     <p class="hint marker-hint" id="marker-hint"></p>
   </div>
 
   <details class="live" id="live-panel">
-    <summary>Live-Mitschrift <span class="tag">Experiment</span></summary>
-    <p class="hint">Die Spracherkennung des Browsers schreibt mit und erkennt gesprochene Marker. Braucht Netz, bricht in Safari nach Pausen ab. Der Bericht funktioniert auch ohne.</p>
+    <summary>Mitschrift <span class="tag" id="live-state">aus</span></summary>
+    <p class="hint" id="live-hint">Die Spracherkennung des Browsers schreibt mit, erkennt gesprochene Marker und benennt gedrückte. Ein Experiment: braucht Netz, schickt den Ton an den Browser-Anbieter, bricht in Safari nach Pausen ab. Der Bericht funktioniert auch ohne.</p>
     <label class="check"><input type="checkbox" id="live-toggle"> Mitschrift einschalten</label>
     <p class="live-text" id="live-text"></p>
   </details>

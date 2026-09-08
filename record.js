@@ -3,7 +3,7 @@
 // browser, nothing here navigates away while the recorder runs, and every
 // photo, marker and chunk is written to IndexedDB the moment it exists.
 
-import { getTemplate, detectMarker } from './templates.js';
+import { getTemplate, detectMarker, nameMarkersFromSegments } from './templates.js';
 import { addPhoto, addMarker, addSegment } from './session.js';
 import { getSession, putSession, putMedia, persist } from './storage.js';
 import { formatTimecode } from './time.js';
@@ -70,6 +70,14 @@ async function setupMic() {
   micStream = await navigator.mediaDevices.getUserMedia({
     audio: { echoCancellation: false, noiseSuppression: true, autoGainControl: true },
   });
+  // The recording is sacred: if anything takes the microphone (iOS does this
+  // when speech recognition starts), the transcript loses, not the recording.
+  const track = micStream.getAudioTracks()[0];
+  track.addEventListener('mute', () => {
+    if (live) { stopLive(); $('#live-toggle').checked = false; showLiveState(); }
+    status('Das Mikrofon wurde unterbrochen. Mitschrift aus; die Aufnahme läuft weiter, sobald es zurück ist.', true);
+  });
+  track.addEventListener('ended', () => status('Das Mikrofon ist weg. Bitte „Beenden" drücken und neu starten.', true));
 }
 
 async function setupCamera() {
@@ -258,33 +266,32 @@ function addThumb(blob, photo) {
 }
 
 // --- markers ----------------------------------------------------------------------------------------
-let markerLevel = 0;
-const levelsEl = $('#marker-levels');
-template.levels.forEach((name, i) => {
+// One press per level. The press only stamps the time; the name comes from
+// what is said next (via the transcript) or is typed in the report later.
+const buttons = $('#marker-buttons');
+template.levels.forEach((name, level) => {
   const b = document.createElement('button');
-  b.type = 'button'; b.textContent = name; b.setAttribute('aria-pressed', String(i === 0));
-  b.addEventListener('click', () => {
-    markerLevel = i;
-    levelsEl.querySelectorAll('button').forEach((x, j) => x.setAttribute('aria-pressed', String(j === i)));
-    $('#marker-title').placeholder = `${name}, z. B. …`;
-    $('#marker-title').focus();
-  });
-  levelsEl.append(b);
+  b.type = 'button';
+  b.innerHTML = `${name}<small>drücken, dann sagen</small>`;
+  b.addEventListener('click', () => pressMarker(level));
+  buttons.append(b);
 });
-if (template.levels.length === 1) levelsEl.hidden = true;
 
-async function setMarker() {
-  const input = $('#marker-title');
-  const title = input.value.trim();
-  if (!title) { input.focus(); return; }
+async function pressMarker(level) {
   const t = elapsed();
-  addMarker(session, { t, title, level: markerLevel });
-  input.value = '';
-  await save();
-  toast(`Marker: ${title}`, t);
+  addMarker(session, { t, title: '', level });
+  pending.push(save());
+  toast(`${template.levels[level]} — jetzt den Namen sagen`, t);
 }
-$('#marker-set').addEventListener('click', setMarker);
-$('#marker-title').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); setMarker(); } });
+
+/** After a final transcript segment: name any press it belongs to. */
+function nameRecentPresses() {
+  if (nameMarkersFromSegments(session.markers, session.segments, template) > 0) {
+    const last = [...session.markers].reverse().find((m) => m.title);
+    if (last) toast(`${template.levels[last.level]}: ${last.title}`, last.t);
+    pending.push(save());
+  }
+}
 
 // --- live transcript (experiment) -------------------------------------------------------------------
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -292,10 +299,25 @@ let live = null;
 let liveWanted = false;
 let phraseStart = null;
 
+// On by default where it works well (Chrome, Android). iOS Safari can take the
+// microphone away from the recorder when recognition starts, so there it stays
+// off until the user turns it on — and the recorder is watched, see below.
+const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 if (!SR) {
   $('#live-toggle').disabled = true;
-  $('#live-panel').querySelector('.hint').textContent += ' In diesem Browser nicht verfügbar.';
+  $('#live-hint').textContent = 'In diesem Browser gibt es keine Spracherkennung. Marker werden beim Transkribieren nach der Aufnahme benannt.';
+} else {
+  const stored = localStorage.getItem('reporder:live');
+  $('#live-toggle').checked = stored == null ? !isIOS : stored === '1';
+  if (isIOS && stored == null) $('#live-hint').textContent += ' Auf dem iPhone kann die Erkennung der Tonaufnahme das Mikrofon wegnehmen; darum hier standardmäßig aus.';
 }
+function showLiveState() {
+  const on = $('#live-toggle').checked && !!SR;
+  const tag = $('#live-state');
+  tag.textContent = on ? 'an' : 'aus';
+  tag.classList.toggle('on', on);
+}
+showLiveState();
 
 function startLive() {
   if (!SR || live || phase !== 'recording') return;
@@ -313,8 +335,10 @@ function startLive() {
         if (text) {
           addSegment(session, { t, text, source: 'live' });
           pending.push(save());
+          const before = session.markers.filter((m) => m.title).length;
+          nameRecentPresses();
           const hit = detectMarker(text, template);
-          if (hit) toast(`${template.levels[hit.level]}: ${hit.title}`, t);
+          if (hit && session.markers.filter((m) => m.title).length === before) toast(`${template.levels[hit.level]}: ${hit.title}`, t);
         }
       } else {
         interim += r[0].transcript;
@@ -334,7 +358,11 @@ function stopLive() {
   liveWanted = false;
   if (live) { try { live.stop(); } catch { /* already stopped */ } live = null; }
 }
-$('#live-toggle').addEventListener('change', (e) => { if (e.target.checked) startLive(); else stopLive(); });
+$('#live-toggle').addEventListener('change', (e) => {
+  localStorage.setItem('reporder:live', e.target.checked ? '1' : '0');
+  showLiveState();
+  if (e.target.checked) startLive(); else stopLive();
+});
 
 // --- boot -------------------------------------------------------------------------------------------
 if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {

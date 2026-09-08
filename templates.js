@@ -107,12 +107,44 @@ export function detectMarker(text, template) {
   return best ? { level: best.level, title: best.title } : null;
 }
 
+/** A spoken marker this close after a pressed one names it instead of opening a second section. */
+export const NAME_WINDOW_MS = 8000;
+
+/** Display label for a marker without a name yet. */
+export function unnamedLabel(template, level) {
+  return `${template.levels[Math.min(level, template.levels.length - 1)]} · ohne Namen`;
+}
+
+/**
+ * Give pressed-but-unnamed markers their name from what was said right after
+ * the press. Works on live segments today and on a full transcript later.
+ * Mutates `markers`; returns how many got a name.
+ */
+export function nameMarkersFromSegments(markers, segments, template, { windowMs = NAME_WINDOW_MS } = {}) {
+  let named = 0;
+  const sorted = [...segments].sort((a, b) => a.t - b.t);
+  for (const mk of markers) {
+    if (mk.title) continue;
+    const seg = sorted.find((sg) => sg.t >= mk.t && sg.t <= mk.t + windowMs && sg.text?.trim());
+    if (!seg) continue;
+    const hit = detectMarker(seg.text, template);
+    if (hit) {
+      mk.title = hit.title;
+      mk.level = hit.level;
+    } else {
+      mk.title = seg.text.trim().split(/\s+/).slice(0, 4).join(' ');
+    }
+    named++;
+  }
+  return named;
+}
+
 /**
  * Build the outline of a session: sections in time order, each with its
  * items (text segments and photos). Manual markers and spoken markers are
  * merged; a photo with a `sectionKey` override goes where the user put it.
  *
- * segments: [{ t, text }]      markers: [{ t, title, level }]
+ * segments: [{ t, text }]      markers: [{ id, t, title, level }]
  * photos:   [{ id, t, sectionKey? }]
  */
 export function outline({ segments = [], markers = [], photos = [], template }) {
@@ -121,18 +153,26 @@ export function outline({ segments = [], markers = [], photos = [], template }) 
 
   const events = [];
   for (const mk of markers) {
-    if (Number.isFinite(mk.t)) events.push({ t: mk.t, level: mk.level ?? 0, title: mk.title, source: 'manual' });
+    if (!Number.isFinite(mk.t)) continue;
+    const level = Math.min(Math.max(0, mk.level ?? depth - 1), depth - 1);
+    events.push({ t: mk.t, level, title: mk.title || unnamedLabel(tpl, level), source: 'manual', markerId: mk.id, unnamed: !mk.title });
   }
+  const pressed = events.slice();
   for (const seg of segments) {
     const hit = detectMarker(seg.text, tpl);
-    if (hit) events.push({ t: seg.t, level: hit.level, title: hit.title, source: 'spoken' });
+    if (!hit) continue;
+    // Said right after a press: that is the press's name, not a second section —
+    // unless the press already carries a different name.
+    const namesAPress = pressed.some((e) => seg.t >= e.t && seg.t <= e.t + NAME_WINDOW_MS && (e.unnamed || e.title === hit.title));
+    if (namesAPress) continue;
+    events.push({ t: seg.t, level: hit.level, title: hit.title, source: 'spoken' });
   }
   events.sort((a, b) => a.t - b.t || a.level - b.level);
 
   const sections = [{ key: 'start', path: [], level: -1, t: 0, items: [] }];
   let path = new Array(depth).fill(null);
   for (const ev of events) {
-    const level = Math.min(Math.max(0, ev.level), depth - 1);
+    const level = ev.level;
     path = path.slice(0, level).concat([ev.title], new Array(depth - level - 1).fill(null));
     sections.push({
       key: `s-${ev.t}-${level}`,
@@ -140,6 +180,8 @@ export function outline({ segments = [], markers = [], photos = [], template }) 
       level,
       t: ev.t,
       source: ev.source,
+      markerId: ev.markerId,
+      unnamed: ev.unnamed || false,
       items: [],
     });
   }

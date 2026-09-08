@@ -29,7 +29,7 @@ test('timecodes are validated and rounded, never the clock', () => {
   assert.equal(addPhoto(s, { t: 1234.6 }).t, 1235);
   assert.throws(() => addPhoto(s, { t: -1 }), /invalid timecode/);
   assert.throws(() => addPhoto(s, { t: NaN }), /invalid timecode/);
-  assert.throws(() => addMarker(s, { t: 5, title: '' }), /title/);
+  assert.equal(addMarker(s, { t: 5 }).title, '');
 });
 
 test('moving a photo changes only the section, not its t', () => {

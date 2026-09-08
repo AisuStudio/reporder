@@ -26,7 +26,7 @@ export function createSession({ title = '', template = 'site', now = new Date() 
     durationMs: 0,
     audio: null,          // { type: 'audio/webm', chunks: 12 } once recorded
     segments: [],         // { id, t, text, source: 'live' | 'manual' | 'transcript' }
-    markers: [],          // { id, t, title, level }
+    markers: [],          // { id, t, title ('' until named), level }
     photos: [],           // { id, t, type: 'image/jpeg', width, height, sectionKey? }
     notes: '',
   };
@@ -43,9 +43,9 @@ export function addPhoto(session, { id = newId('p'), t, type = 'image/jpeg', wid
   return photo;
 }
 
-export function addMarker(session, { id = newId('m'), t, title, level = 0 }) {
-  if (!title) throw new Error('marker needs a title');
-  const marker = { id, t: assertTime(t), title: String(title), level };
+/** A marker may be pressed without a name; the name comes from what is said next. */
+export function addMarker(session, { id = newId('m'), t, title = '', level = 0 }) {
+  const marker = { id, t: assertTime(t), title: String(title ?? '').trim(), level };
   session.markers.push(marker);
   return marker;
 }

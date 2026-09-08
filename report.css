@@ -31,6 +31,13 @@ input.titel::placeholder { color: #bbb; }
 .section-head .tc { color: var(--muted); font-size: .85em; }
 .section-head .tag { font-size: .72em; }
 .section-head .parent { color: var(--muted); font-weight: 400; }
+.section-head input.rename {
+  font: inherit; font-weight: 600; font-size: clamp(19px, 1.6vw, 24px); padding: 2px 6px;
+  border: 1px dashed var(--line); border-radius: var(--r); max-width: 16em; background: transparent;
+}
+.section-head input.rename:focus { border-style: solid; border-color: var(--accent); outline: none; }
+.section-head input.rename.unnamed { color: var(--muted); font-weight: 400; }
+.section-head button.link { font-size: .82em; }
 
 .items { display: grid; gap: 14px; }
 .item { display: grid; grid-template-columns: 4.2em 1fr; gap: 12px; align-items: start; }
@@ -73,6 +80,8 @@ input.titel::placeholder { color: #bbb; }
   .titel { border: 0; font-size: 22pt; }
   .section { break-inside: avoid-page; margin-bottom: 10mm; }
   .section-head { border-top-color: #000; }
+  .section-head input.rename { border: 0; padding: 0; }
+  .section-head button { display: none; }
   .items { gap: 6px; }
   .item { grid-template-columns: 3.6em 1fr; break-inside: avoid; }
   .item > .tc { font-size: 8pt; }

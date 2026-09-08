@@ -2,7 +2,7 @@
 // what was said. Edits here change data (text, assignment, title, notes),
 // never the events — a photo keeps its `t` wherever the user moves it.
 
-import { getTemplate, outline, sectionTitle, detectMarker } from './templates.js';
+import { getTemplate, outline, sectionTitle, detectMarker, nameMarkersFromSegments } from './templates.js';
 import { addMarker, setPhotoSection, serialize, audioFileName } from './session.js';
 import { getSession, putSession, getMedia, getAudioBlob } from './storage.js';
 import { formatTimecode, formatDate, fileStamp } from './time.js';
@@ -55,11 +55,18 @@ if (audioBlob) {
   $('#btn-audio').setAttribute('aria-disabled', 'true');
   $('#btn-audio').removeAttribute('href');
 }
-function seek(t) {
+let stopAt = null;
+function seek(t, forMs = null) {
   if (!audioBlob) return;
   audio.currentTime = t / 1000;
+  stopAt = forMs ? (t + forMs) / 1000 : null;
   audio.play().catch(() => {});
 }
+audio.addEventListener('timeupdate', () => { if (stopAt != null && audio.currentTime >= stopAt) { audio.pause(); stopAt = null; } });
+
+// Presses that never got a name from the live transcript: try again with
+// whatever text exists now (edits, later transcription).
+if (nameMarkersFromSegments(session.markers, session.segments, template) > 0) save();
 
 // --- actions ----------------------------------------------------------------------------
 $('#btn-print').addEventListener('click', () => window.print());
@@ -115,12 +122,43 @@ async function render() {
       parent.textContent = sec.path.slice(0, -1).join(' · ') + ' · ';
       h2.append(parent);
     }
-    h2.append(document.createTextNode(sec.path.length ? sec.path.at(-1) : 'Vorlauf'));
+    const marker = sec.markerId ? session.markers.find((m) => m.id === sec.markerId) : null;
+    if (marker) {
+      // A pressed marker: its name is editable right here.
+      const input = document.createElement('input');
+      input.type = 'text'; input.className = 'rename' + (sec.unnamed ? ' unnamed' : '');
+      input.value = marker.title; input.placeholder = `${template.levels[sec.level]} benennen`;
+      input.setAttribute('aria-label', 'Abschnitt benennen'); input.maxLength = 80;
+      input.addEventListener('change', () => {
+        const title = input.value.trim();
+        marker.title = title;
+        const hit = title ? detectMarker(title, template) : null;
+        if (hit) marker.level = hit.level;
+        save(); render();
+      });
+      h2.append(input);
+    } else {
+      h2.append(document.createTextNode(sec.path.length ? sec.path.at(-1) : 'Vorlauf'));
+    }
     head.append(h2);
     if (sec.t > 0 || sec.path.length) {
       const tc = document.createElement('span'); tc.className = 'tc'; tc.textContent = formatTimecode(sec.t); head.append(tc);
     }
     if (sec.source === 'spoken') { const tag = document.createElement('span'); tag.className = 'tag'; tag.textContent = 'gesprochen'; head.append(tag); }
+    if (marker && audioBlob) {
+      const play = document.createElement('button'); play.type = 'button'; play.className = 'link';
+      play.textContent = 'Was wurde gesagt? 6 s abspielen';
+      play.addEventListener('click', () => seek(sec.t, 6000));
+      head.append(play);
+    }
+    if (marker) {
+      const del = document.createElement('button'); del.type = 'button'; del.className = 'link'; del.textContent = 'Marker entfernen';
+      del.addEventListener('click', () => {
+        session.markers = session.markers.filter((m) => m.id !== marker.id);
+        save(); render();
+      });
+      head.append(del);
+    }
     el.append(head);
 
     const items = document.createElement('div');
