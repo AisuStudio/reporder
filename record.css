@@ -98,3 +98,21 @@ body.recording #btn-main, body.paused #btn-main { background: var(--fg); }
 @media (min-width: 720px) {
   .viewfinder { max-height: 56dvh; }
 }
+
+/* ------------------------------------------------ running indicator */
+/* The header stays put, so the seconds are visible however far the page
+ * is scrolled; the main button and the clock both carry the pulse. */
+.rec-head { position: sticky; top: 0; z-index: 5; background: var(--bg); }
+.rec-clock { display: inline-flex; align-items: center; gap: 10px; }
+.rec-clock::before {
+  content: ''; width: 12px; height: 12px; border-radius: 50%; background: var(--line); flex: none;
+}
+body.recording .rec-clock::before { background: var(--accent); animation: blink 1.2s infinite; }
+body.paused .rec-clock::before { background: var(--fg); animation: none; }
+
+#btn-main { display: inline-flex; align-items: center; gap: 9px; }
+body.recording #btn-main::before, body.paused #btn-main::before {
+  content: ''; width: 10px; height: 10px; border-radius: 50%; flex: none;
+}
+body.recording #btn-main::before { background: var(--accent); animation: blink 1.2s infinite; }
+body.paused #btn-main::before { background: #999; }
