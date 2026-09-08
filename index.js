@@ -2,6 +2,7 @@ import { TEMPLATES, DEFAULT_TEMPLATE, getTemplate } from './templates.js';
 import { createSession } from './session.js';
 import { listSessions, putSession, deleteSession, storageEstimate } from './storage.js';
 import { formatDate, formatDuration, formatTimecode } from './time.js';
+import { unpack, importSession } from './transfer.js';
 
 const $ = (sel) => document.querySelector(sel);
 
@@ -80,6 +81,32 @@ async function renderSessions() {
   }
 }
 renderSessions();
+
+// --- open an exported session ---------------------------------------------------------
+$('#import-file').addEventListener('change', async (e) => {
+  const file = e.target.files?.[0];
+  const note = $('#import-note');
+  if (!file) return;
+  note.hidden = false;
+  note.textContent = `„${file.name}" wird gelesen …`;
+  try {
+    const unpacked = await unpack(file);
+    const imported = await importSession(unpacked, {
+      onExists: async (existing) => {
+        const what = existing.title || formatDate(existing.createdAt);
+        if (confirm(`„${what}" ist schon da. Ersetzen? (Abbrechen legt eine Kopie an.)`)) return 'replace';
+        return 'copy';
+      },
+    });
+    if (!imported) { note.hidden = true; return; }
+    note.textContent = `Geladen: ${imported.title || formatDate(imported.createdAt)}, ${imported.photos.length} Fotos${imported.audio ? ', mit Ton' : ', ohne Ton'}.`;
+    renderSessions();
+  } catch (err) {
+    note.textContent = `Konnte „${file.name}" nicht öffnen: ${err.message}`;
+  } finally {
+    e.target.value = '';
+  }
+});
 
 // --- service worker -----------------------------------------------------------
 if ('serviceWorker' in navigator) {

@@ -59,8 +59,13 @@
   </form>
 
   <section class="kapitel" id="sessions-section">
-    <h2>Aufnahmen</h2>
-    <p class="hint" id="sessions-empty">Noch keine. Die erste Aufnahme erscheint hier, sobald sie beendet ist.</p>
+    <div class="kapitel-head">
+      <h2>Aufnahmen</h2>
+      <label class="btn secondary" for="import-file">Aufnahme laden</label>
+      <input type="file" id="import-file" accept=".zip,.json,application/zip,application/json" hidden>
+    </div>
+    <p class="hint" id="import-note" hidden></p>
+    <p class="hint" id="sessions-empty">Noch keine. Die erste Aufnahme erscheint hier, sobald sie beendet ist. Ein exportiertes ZIP lässt sich über „Aufnahme laden" wieder öffnen.</p>
     <ul class="sessions" id="sessions"></ul>
   </section>
 

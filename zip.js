@@ -113,3 +113,61 @@ export async function zipBytes(entries) {
   for (const p of parts) { const b = await toBytes(p); out.set(b, o); o += b.length; }
   return out;
 }
+
+// ---------------------------------------------------------------- reading
+
+async function inflateRaw(bytes) {
+  if (typeof DecompressionStream === 'undefined') throw new Error('this browser cannot unpack compressed entries');
+  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+  return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+
+/**
+ * Read a ZIP (Uint8Array/ArrayBuffer/Blob) into [{ name, data: Uint8Array }].
+ * Handles stored and deflated entries, so an archive re-zipped by macOS or
+ * Windows still opens. Directories are skipped. Throws on anything that is
+ * not a ZIP or has a CRC mismatch.
+ */
+export async function readZip(input) {
+  const bytes = await toBytes(input);
+  const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const dec = new TextDecoder();
+
+  // End of central directory: scan back over a possible comment.
+  let eocd = -1;
+  for (let i = bytes.length - 22; i >= Math.max(0, bytes.length - 22 - 65535); i--) {
+    if (dv.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+  }
+  if (eocd < 0) throw new Error('not a ZIP file');
+  const count = dv.getUint16(eocd + 10, true);
+  let p = dv.getUint32(eocd + 16, true);
+
+  const entries = [];
+  for (let n = 0; n < count; n++) {
+    if (dv.getUint32(p, true) !== 0x02014b50) throw new Error('damaged ZIP directory');
+    const method = dv.getUint16(p + 10, true);
+    const crc = dv.getUint32(p + 16, true);
+    const csize = dv.getUint32(p + 20, true);
+    const usize = dv.getUint32(p + 24, true);
+    const nameLen = dv.getUint16(p + 28, true);
+    const extraLen = dv.getUint16(p + 30, true);
+    const commentLen = dv.getUint16(p + 32, true);
+    const localOffset = dv.getUint32(p + 42, true);
+    const name = dec.decode(bytes.subarray(p + 46, p + 46 + nameLen));
+    p += 46 + nameLen + extraLen + commentLen;
+
+    if (name.endsWith('/') || name.startsWith('__MACOSX/')) continue;
+    if (dv.getUint32(localOffset, true) !== 0x04034b50) throw new Error(`damaged entry: ${name}`);
+    const lNameLen = dv.getUint16(localOffset + 26, true);
+    const lExtraLen = dv.getUint16(localOffset + 28, true);
+    const start = localOffset + 30 + lNameLen + lExtraLen;
+    const raw = bytes.subarray(start, start + csize);
+    let data;
+    if (method === 0) data = raw;
+    else if (method === 8) data = await inflateRaw(raw);
+    else throw new Error(`unsupported compression in ${name}`);
+    if (data.length !== usize || crc32(data) !== crc) throw new Error(`corrupt entry: ${name}`);
+    entries.push({ name, data });
+  }
+  return entries;
+}

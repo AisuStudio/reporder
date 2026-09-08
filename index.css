@@ -40,3 +40,8 @@ button .pfeil { margin-left: 4px; }
 .session-actions { display: flex; gap: 8px; }
 .session-actions button { font-size: .85em; padding: 6px 12px; }
 .session-badge { font-size: .75em; color: var(--accent); border: 1px solid var(--accent); border-radius: 20px; padding: 1px 8px; }
+
+.kapitel-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+.kapitel-head h2 { margin: 0; }
+.kapitel-head label.btn { cursor: pointer; font-size: .92em; padding: 8px 14px; }
+#import-note { color: var(--accent); }
