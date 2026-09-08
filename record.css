@@ -7,7 +7,7 @@ body.record { display: flex; flex-direction: column; min-height: 100dvh; }
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
   padding: 10px clamp(14px, 3vw, 24px); border-bottom: 1px solid var(--line);
 }
-.rec-head .wordmark { font-size: 16px; }
+.rec-head .wordmark .logo { height: 24px; }
 .rec-title { margin: 0; color: var(--muted); font-size: .88em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 50vw; }
 .rec-clock { margin: 0; font-size: clamp(22px, 5vw, 32px); color: var(--muted); }
 body.recording .rec-clock { color: var(--accent); }
