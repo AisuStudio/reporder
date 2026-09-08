@@ -66,35 +66,54 @@ function pickMimeType() {
   return candidates.find((m) => MediaRecorder.isTypeSupported?.(m)) || '';
 }
 
-async function setupMic() {
-  micStream = await navigator.mediaDevices.getUserMedia({
+// Microphone and camera come from ONE getUserMedia call. iOS Safari keeps only
+// one capture stream alive per page: asking for the camera first and the
+// microphone later ends with a silent, prompt-less failure for the second one.
+// One call, one permission prompt, then the tracks are split.
+async function setupMedia() {
+  const video = $('#video');
+  const constraints = {
     audio: { echoCancellation: false, noiseSuppression: true, autoGainControl: true },
-  });
-  // The recording is sacred: if anything takes the microphone (iOS does this
-  // when speech recognition starts), the transcript loses, not the recording.
-  const track = micStream.getAudioTracks()[0];
+    video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1440 } },
+  };
+  let stream = null;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia(constraints);
+  } catch (err) {
+    // No camera, or camera refused: the recording still has to work.
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: constraints.audio });
+    } catch (err2) {
+      status(`Kein Mikrofon frei (${err2.name}). Ohne Mikrofon keine Aufnahme. Bitte in den Einstellungen für diese Seite erlauben.`, true);
+      return false;
+    }
+    const note = $('#camera-note');
+    note.textContent = `Keine Kamera frei (${err.name}). Die Tonaufnahme geht trotzdem; Fotos sind dann nicht möglich.`;
+    note.hidden = false;
+  }
+  const audioTracks = stream.getAudioTracks();
+  const videoTracks = stream.getVideoTracks();
+  if (audioTracks.length) {
+    micStream = new MediaStream(audioTracks);
+    watchMic(audioTracks[0]);
+  }
+  if (videoTracks.length) {
+    camStream = new MediaStream(videoTracks);
+    video.srcObject = camStream;
+    await video.play().catch(() => {});
+    $('#btn-shutter').disabled = false;
+  }
+  return !!micStream;
+}
+
+// The recording is sacred: if anything takes the microphone (iOS does this
+// when speech recognition starts), the transcript loses, not the recording.
+function watchMic(track) {
   track.addEventListener('mute', () => {
     if (live) { stopLive(); $('#live-toggle').checked = false; showLiveState(); }
     status('Das Mikrofon wurde unterbrochen. Mitschrift aus; die Aufnahme läuft weiter, sobald es zurück ist.', true);
   });
   track.addEventListener('ended', () => status('Das Mikrofon ist weg. Bitte „Beenden" drücken und neu starten.', true));
-}
-
-async function setupCamera() {
-  const video = $('#video');
-  try {
-    camStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1440 } },
-      audio: false,
-    });
-    video.srcObject = camStream;
-    await video.play().catch(() => {});
-    $('#btn-shutter').disabled = false;
-  } catch (err) {
-    const note = $('#camera-note');
-    note.textContent = 'Keine Kamera frei. Die Tonaufnahme geht trotzdem; Fotos sind dann nicht möglich.';
-    note.hidden = false;
-  }
 }
 
 async function requestWakeLock() {
@@ -128,12 +147,8 @@ function startRecorder() {
 async function start() {
   const btn = $('#btn-main');
   btn.disabled = true;
-  try {
-    await setupMic();
-  } catch (err) {
-    status('Kein Mikrofon. Ohne Mikrofon keine Aufnahme.', true);
-    btn.disabled = false;
-    return;
+  if (!micStream || micStream.getAudioTracks().every((t) => t.readyState === 'ended')) {
+    if (!(await setupMedia())) { btn.disabled = false; return; }
   }
   clock.running = true; clock.startedAt = performance.now();
   startRecorder();
@@ -146,7 +161,6 @@ async function start() {
   requestWakeLock();
   status('Läuft. Bildschirm bleibt an, Fotos und Marker werden sofort gesichert.');
   if ($('#live-toggle').checked) startLive();
-  if (!camStream) setupCamera();
 }
 
 function pause() {
@@ -369,6 +383,6 @@ if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined
   status('Dieser Browser kann nicht aufnehmen. Bitte Chrome, Safari oder Firefox in aktueller Fassung.', true);
   $('#btn-main').disabled = true;
 } else {
-  status('Bereit. Kamera wird geöffnet …');
-  setupCamera().then(() => status('Bereit. „Starten" schaltet das Mikrofon ein.'));
+  status('Bereit. Mikrofon und Kamera werden angefragt …');
+  setupMedia().then((ok) => { if (ok) status('Bereit. „Starten" beginnt die Aufnahme.'); });
 }
