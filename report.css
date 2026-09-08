@@ -8,7 +8,7 @@ input.titel {
   border-radius: 0; padding: 0; max-width: none; width: 100%;
 }
 input.titel:hover, input.titel:focus { border-bottom-color: var(--line); outline: none; }
-input.titel::placeholder { color: #bbb; }
+input.titel::placeholder { color: var(--muted); }
 
 .fakten { display: flex; flex-wrap: wrap; gap: 8px 36px; margin: 14px 0 0; }
 .fakten div { margin: 0; }
