@@ -1,0 +1,83 @@
+/* Reporder — the report. Sections in recording order; every photo sits with
+ * the sentence spoken around it. Also the print layout. */
+
+.kopf { margin: 0 0 24px; }
+input.titel {
+  font-family: var(--font-display); font-size: clamp(26px, 2.6vw + 16px, 40px);
+  font-weight: 600; line-height: 1.15; border: 0; border-bottom: 1px solid transparent;
+  border-radius: 0; padding: 0; max-width: none; width: 100%;
+}
+input.titel:hover, input.titel:focus { border-bottom-color: var(--line); outline: none; }
+input.titel::placeholder { color: #bbb; }
+
+.fakten { display: flex; flex-wrap: wrap; gap: 8px 36px; margin: 14px 0 0; }
+.fakten div { margin: 0; }
+.fakten dt { font-size: .78em; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 0 0 1px; }
+.fakten dd { margin: 0; font-weight: 500; }
+.fakten dd.tc { font-size: .95em; }
+
+.player { margin: 20px 0 0; }
+.player audio { width: 100%; max-width: 640px; display: block; }
+
+.actions.top { margin-top: 24px; margin-bottom: var(--block); padding-top: 18px; }
+
+/* ------------------------------------------------------------- sections */
+.section { margin: 0 0 var(--block); }
+.section-head {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px;
+  padding-top: 18px; border-top: 1px solid var(--fg); margin: 0 0 14px;
+}
+.section-head h2 { margin: 0; font-size: clamp(19px, 1.6vw, 24px); font-weight: 600; }
+.section-head .tc { color: var(--muted); font-size: .85em; }
+.section-head .tag { font-size: .72em; }
+.section-head .parent { color: var(--muted); font-weight: 400; }
+
+.items { display: grid; gap: 14px; }
+.item { display: grid; grid-template-columns: 4.2em 1fr; gap: 12px; align-items: start; }
+.item > .tc { font-size: .78em; color: var(--muted); padding-top: 4px; cursor: pointer; }
+.item > .tc:hover { color: var(--accent); }
+
+.item-text p {
+  margin: 0; padding: 6px 8px; border-radius: var(--r); border: 1px solid transparent; min-height: 1.5em;
+}
+.item-text p:focus { outline: none; border-color: var(--line); background: var(--soft); }
+.item-text p.is-marker { font-weight: 500; }
+.item-text p.is-marker::before { content: '§ '; color: var(--accent); }
+
+.item-photo figure { margin: 0; }
+.item-photo img {
+  display: block; width: 100%; max-width: 560px; height: auto; border-radius: var(--r-lg);
+  border: 1px solid var(--line); cursor: pointer; background: var(--soft);
+}
+.item-photo figcaption { font-size: .85em; color: var(--muted); margin-top: 6px; display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; }
+.item-photo figcaption .context { flex-basis: 100%; color: var(--fg); }
+
+.item-tools { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; align-items: center; }
+.item-tools select { font-size: .82em; padding: 5px 8px; max-width: 280px; border-color: var(--line); }
+.item-tools button.link { font-size: .82em; }
+
+.notes { margin-top: var(--block); padding-top: 18px; border-top: 1px solid var(--line); }
+.notes h2 { margin-top: 0; }
+.notes textarea { max-width: 62ch; }
+
+.print-only { display: none; }
+
+/* ------------------------------------------------------------------ print */
+@media print {
+  @page { margin: 16mm; }
+  body { font-size: 11pt; color: #000; }
+  .no-print, .item-tools, .wip-band, .skip-link { display: none !important; }
+  .print-only { display: block; }
+  .wrap { max-width: none; padding: 0; }
+  main { padding: 0; }
+  .titel { border: 0; font-size: 22pt; }
+  .section { break-inside: avoid-page; margin-bottom: 10mm; }
+  .section-head { border-top-color: #000; }
+  .items { gap: 6px; }
+  .item { grid-template-columns: 3.6em 1fr; break-inside: avoid; }
+  .item > .tc { font-size: 8pt; }
+  .item-text p { padding: 0; border: 0; }
+  .item-photo img { max-width: 110mm; border-radius: 3mm; border: 0; }
+  .site-foot { border-top: 1px solid #000; margin-top: 10mm; font-size: 8pt; }
+  .notes textarea { border: 0; padding: 0; resize: none; }
+}

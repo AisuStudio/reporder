@@ -1,0 +1,11 @@
+{
+  "name": "reporder",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Reporder — sprechen, fotografieren, Bericht. Läuft im Browser, ohne Konto.",
+  "scripts": {
+    "test": "node --test",
+    "serve": "python3 -m http.server 8792 --directory ."
+  }
+}

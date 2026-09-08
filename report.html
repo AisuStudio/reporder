@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Reporder — Bericht</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#1a1a1a">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="report.css">
+</head>
+<body class="report">
+<a class="skip-link" href="#inhalt">Zum Inhalt springen</a>
+
+<header class="site-head no-print">
+  <div class="wrap">
+    <div>
+      <p class="wordmark"><a href="index.html">REPORDER<span class="dot">.</span></a></p>
+      <p class="tagline">Bericht — jedes Foto bei dem Satz, der gerade gesprochen wurde</p>
+    </div>
+    <p class="stand" id="meta-stand"></p>
+  </div>
+</header>
+
+<main id="inhalt" class="wrap">
+
+  <section class="kopf">
+    <input type="text" class="titel" id="title" placeholder="Bezeichnung" maxlength="120" aria-label="Bezeichnung">
+    <dl class="fakten">
+      <div><dt>Aufgenommen</dt><dd id="fact-date"></dd></div>
+      <div><dt>Dauer</dt><dd class="tc" id="fact-duration"></dd></div>
+      <div><dt>Fotos</dt><dd id="fact-photos"></dd></div>
+      <div><dt>Vorlage</dt><dd id="fact-template"></dd></div>
+    </dl>
+    <div class="player no-print" id="player">
+      <audio id="audio" controls preload="metadata"></audio>
+      <p class="hint" id="audio-note" hidden></p>
+    </div>
+  </section>
+
+  <div class="actions no-print top">
+    <button type="button" id="btn-print">Drucken / PDF</button>
+    <button type="button" class="secondary" id="btn-json">Protokoll (JSON)</button>
+    <a class="btn secondary" id="btn-audio" download>Ton herunterladen</a>
+  </div>
+
+  <p class="hint no-print" id="empty-note" hidden>
+    Keine Marker erkannt. Ein Klick auf „Ab hier neuer Abschnitt" an einem Foto oder Satz gliedert nachträglich.
+  </p>
+
+  <div id="sections"></div>
+
+  <section class="notes">
+    <h2>Notizen</h2>
+    <textarea id="notes" rows="4" placeholder="Nachträgliches, Beteiligte, Wetter, Anlass …"></textarea>
+  </section>
+
+</main>
+
+<footer class="site-foot">
+  <div class="wrap">
+    <p class="print-only">Aufgenommen mit Reporder. Zeitcodes beziehen sich auf die Tonaufnahme, nicht auf die Uhrzeit.</p>
+    <p class="no-print">Läuft vollständig im Browser. Keine Anmeldung, keine Übertragung.</p>
+    <p class="foot-meta no-print">
+      <span>dominikheilig.com &copy;2026</span>
+      <a href="https://dominikheilig.com/privacy" target="_blank" rel="noreferrer">Impressum &amp; Datenschutz &#8599;</a>
+    </p>
+  </div>
+</footer>
+
+<script type="module" src="report.js"></script>
+</body>
+</html>

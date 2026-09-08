@@ -1,0 +1,94 @@
+/* Reporder — the recording screen. One page, nothing leaves it while the
+ * recording runs. Mobile first: viewfinder on top, controls pinned below. */
+
+body.record { display: flex; flex-direction: column; min-height: 100dvh; }
+
+.rec-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 10px clamp(14px, 3vw, 24px); border-bottom: 1px solid var(--line);
+}
+.rec-head .wordmark { font-size: 15px; letter-spacing: .08em; }
+.rec-title { margin: 0; color: var(--muted); font-size: .88em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 50vw; }
+.rec-clock { margin: 0; font-size: clamp(22px, 5vw, 32px); color: var(--muted); }
+body.recording .rec-clock { color: var(--accent); }
+body.paused .rec-clock { color: var(--fg); }
+
+.rec-main { flex: 1; padding: 12px clamp(14px, 3vw, 24px) 16px; max-width: 900px; width: 100%; margin: 0 auto; }
+
+/* ------------------------------------------------------------ viewfinder */
+.viewfinder {
+  position: relative; background: #0c0c0c; border-radius: var(--r-lg); overflow: hidden;
+  aspect-ratio: 4 / 3; max-height: 52dvh; margin: 0 auto;
+}
+.viewfinder video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.viewfinder-note {
+  position: absolute; inset: 0; margin: 0; display: flex; align-items: center; justify-content: center;
+  color: #fff; padding: 24px; text-align: center; font-size: .95em; background: rgba(8,8,8,.7);
+}
+.flash { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; }
+.flash.on { animation: flash .22s ease-out; }
+@keyframes flash { from { opacity: .9; } to { opacity: 0; } }
+.rec-dot {
+  position: absolute; top: 12px; left: 14px; margin: 0; color: #fff; font-size: .74em; font-weight: 600;
+  letter-spacing: .12em; display: flex; align-items: center; gap: 7px;
+}
+.rec-dot span { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); animation: blink 1.2s infinite; }
+body.paused .rec-dot span { animation: none; background: #999; }
+@keyframes blink { 50% { opacity: .25; } }
+
+.status { margin: 10px 0 0; color: var(--muted); font-size: .84em; min-height: 1.4em; }
+.status .warn { color: var(--accent); }
+
+.toast {
+  margin: 10px 0 0; padding: 10px 14px; border-radius: var(--r);
+  background: var(--fg); color: #fff; font-size: .92em; display: flex; gap: 10px; align-items: baseline;
+}
+.toast .tc { color: var(--accent); font-size: .85em; }
+
+/* ------------------------------------------------------------- photo strip */
+.strip { list-style: none; margin: 14px 0 0; padding: 0 0 6px; display: flex; gap: 8px; overflow-x: auto; scroll-snap-type: x proximity; }
+.strip:empty { display: none; }
+.strip li { flex: none; width: 88px; scroll-snap-align: start; }
+.strip img { width: 88px; height: 66px; object-fit: cover; border-radius: var(--r); display: block; border: 1px solid var(--line); }
+.strip .tc { display: block; font-size: 10px; color: var(--muted); margin-top: 3px; text-align: center; }
+
+/* ----------------------------------------------------------------- marker */
+.marker { margin: 16px 0 0; padding-top: 14px; border-top: 1px solid var(--line); }
+.marker .modes { margin-bottom: 8px; }
+.marker-row { display: flex; gap: 8px; }
+.marker-row input { max-width: none; flex: 1; min-width: 0; }
+.marker-row button { white-space: nowrap; }
+.marker-hint { margin: 8px 0 0; font-size: .82em; }
+
+/* ------------------------------------------------------------------- live */
+.live { margin: 14px 0 0; border: 1px solid var(--line); border-radius: var(--r); padding: 10px 14px; font-size: .92em; }
+.live summary { cursor: pointer; font-weight: 500; }
+.live .check { display: flex; gap: 8px; align-items: center; margin: 8px 0; }
+.live .check input { accent-color: var(--accent); width: 18px; height: 18px; }
+.live-text { margin: 6px 0 0; color: var(--muted); font-size: .92em; min-height: 1.4em; }
+.live-text .interim { color: #aaa; }
+
+/* --------------------------------------------------------------- controls */
+.rec-controls {
+  position: sticky; bottom: 0; background: var(--bg); border-top: 1px solid var(--line);
+  display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px;
+  padding: 12px clamp(14px, 3vw, 24px) calc(12px + env(safe-area-inset-bottom));
+}
+.rec-controls .ctl { min-width: 0; }
+#btn-pause { justify-self: start; }
+#btn-main { justify-self: end; }
+body.recording #btn-main, body.paused #btn-main { background: var(--fg); }
+
+.shutter {
+  width: 76px; height: 76px; border-radius: 50%; padding: 0; border: 0;
+  background: var(--accent); display: grid; place-items: center; justify-self: center;
+  box-shadow: 0 0 0 4px #fff, 0 0 0 6px var(--accent);
+}
+.shutter:hover { background: var(--accent-strong); }
+.shutter:active { transform: scale(.94); }
+.shutter span { width: 26px; height: 26px; border-radius: 50%; background: #fff; }
+.shutter[disabled] { background: #ccc; box-shadow: 0 0 0 4px #fff, 0 0 0 6px #ccc; }
+
+@media (min-width: 720px) {
+  .viewfinder { max-height: 56dvh; }
+}

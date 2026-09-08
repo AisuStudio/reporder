@@ -1,0 +1,171 @@
+// Templates: how a recording is structured into sections, and which spoken
+// phrases open a new one. This is data, not code in the recording screen —
+// a new trade is a new template with test cases for its markers (AGENTS.md).
+//
+// A template has ordered levels (e.g. floor → room). A marker of level n opens
+// a new section and resets every deeper level. Detection is deliberately
+// conservative: the phrase has to sit at the start of what was said, so
+// "hier im Bad ist die Fuge kaputt" is a finding, not a new room.
+
+const ORDINALS = {
+  erste: 1, zweite: 2, dritte: 3, vierte: 4, fünfte: 5, fuenfte: 5, sechste: 6,
+  siebte: 7, achte: 8, neunte: 9, zehnte: 10,
+};
+
+function ordinal(word) {
+  const w = word.toLowerCase().replace(/[rsn]$/, '');
+  if (ORDINALS[w] != null) return ORDINALS[w];
+  const n = parseInt(word, 10);
+  return Number.isFinite(n) ? n : null;
+}
+
+const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+
+/** A marker pattern: regex plus a function turning the match into a title. */
+const m = (level, re, title) => ({ level, re, title });
+
+export const TEMPLATES = {
+  site: {
+    id: 'site',
+    name: 'Bau · Begehung',
+    levels: ['Geschoss', 'Raum'],
+    hint: 'Sag z. B. „Erdgeschoss", „Erster Stock", „Zimmer 3", „Bad", „Treppenhaus".',
+    markers: [
+      m(0, /\b(erdgeschoss|parterre)\b/i, () => 'Erdgeschoss'),
+      m(0, /\b(kellergeschoss|keller|untergeschoss|tiefgarage)\b/i, (x) => cap(x[1])),
+      m(0, /\b(dachgeschoss|dachboden|dach)\b/i, (x) => cap(x[1])),
+      m(0, /\b(erste[rsn]?|zweite[rsn]?|dritte[rsn]?|vierte[rsn]?|fünfte[rsn]?|fuenfte[rsn]?|sechste[rsn]?|siebte[rsn]?|achte[rsn]?|neunte[rsn]?|zehnte[rsn]?|\d{1,2})\.?\s+(stockwerk|stock|obergeschoss|etage|og)\b/i,
+        (x) => { const n = ordinal(x[1]); return n == null ? null : `${n}. Obergeschoss`; }),
+      m(0, /\b(außenanlagen|außenanlage|außenbereich|fassade|hof|garten)\b/i, (x) => cap(x[1])),
+      m(1, /\b(zimmer|raum|büro|badezimmer|bad|küche|flur|diele|treppenhaus|toilette|wc|abstellraum|technikraum|hausanschlussraum|heizungsraum|balkon|terrasse|loggia|wohnung|schlafzimmer|wohnzimmer|kinderzimmer|besprechungsraum|lager|garage|waschküche|aufzug)\b\s*(?:(?:nummer|nr\.?)\s*)?([a-z]?\d+[a-z]?)?/i,
+        (x) => (x[2] ? `${cap(x[1])} ${x[2].toUpperCase()}` : cap(x[1]))),
+    ],
+  },
+
+  landscape: {
+    id: 'landscape',
+    name: 'Galabau',
+    levels: ['Bereich', 'Fläche'],
+    hint: 'Sag z. B. „Vorgarten", „Innenhof", „Beet 2", „Rasenfläche", „Weg".',
+    markers: [
+      m(0, /\b(vorgarten|hinterhof|innenhof|garten|parkplatz|zufahrt|spielplatz|eingangsbereich|eingang|nordseite|südseite|ostseite|westseite|dachgarten)\b/i, (x) => cap(x[1])),
+      m(0, /\bbereich\s+([\wäöüß-]+)/i, (x) => `Bereich ${cap(x[1])}`),
+      m(1, /\b(beet|rasenfläche|rasen|hecke|weg|mauer|treppe|pflanzfläche|baum|zaun|terrasse|fläche|teich|bewässerung|beleuchtung)\b\s*(\d+)?/i,
+        (x) => (x[2] ? `${cap(x[1])} ${x[2]}` : cap(x[1]))),
+    ],
+  },
+
+  general: {
+    id: 'general',
+    name: 'Allgemein',
+    levels: ['Abschnitt'],
+    hint: 'Sag z. B. „Abschnitt 2", „Punkt Bühne", „neuer Abschnitt".',
+    markers: [
+      m(0, /\b(abschnitt|punkt|thema|kapitel|station|ort)\s+([\wäöüß\d.-]+)/i, (x) => `${cap(x[1])} ${x[2]}`),
+      m(0, /\b(neuer|nächster|naechster)\s+(abschnitt|punkt)\b/i, () => 'Abschnitt'),
+    ],
+  },
+};
+
+export const DEFAULT_TEMPLATE = 'site';
+
+export function getTemplate(id) {
+  return TEMPLATES[id] || TEMPLATES[DEFAULT_TEMPLATE];
+}
+
+/** How many words may precede the marker phrase ("weiter im ersten Stock"),
+ *  and how many may follow it before it stops being a marker and becomes a
+ *  finding ("hier im Bad ist die Fuge gerissen"). A phrase that starts the
+ *  utterance is always a marker, whatever follows. */
+const LEAD_WORDS = 3;
+const TRAIL_WORDS = 2;
+
+const wordCount = (s) => (s.trim() ? s.trim().split(/\s+/).length : 0);
+
+/**
+ * Find a section marker in a spoken segment. Returns { level, title } or null.
+ */
+export function detectMarker(text, template) {
+  if (!text) return null;
+  const t = String(text).trim();
+  let best = null;
+  for (const marker of template.markers) {
+    const x = marker.re.exec(t);
+    if (!x) continue;
+    const before = wordCount(t.slice(0, x.index).replace(/[,.;:!?]/g, ' '));
+    const after = wordCount(t.slice(x.index + x[0].length).replace(/[,.;:!?]/g, ' '));
+    const isMarker = before === 0 || (before <= LEAD_WORDS && after <= TRAIL_WORDS);
+    if (!isMarker) continue;
+    const title = marker.title(x);
+    if (!title) continue;
+    // Prefer the marker that starts earliest; on a tie, the shallower level
+    // (a floor beats a room named in the same breath).
+    if (!best || x.index < best.index || (x.index === best.index && marker.level < best.level)) {
+      best = { level: marker.level, title, index: x.index };
+    }
+  }
+  return best ? { level: best.level, title: best.title } : null;
+}
+
+/**
+ * Build the outline of a session: sections in time order, each with its
+ * items (text segments and photos). Manual markers and spoken markers are
+ * merged; a photo with a `sectionKey` override goes where the user put it.
+ *
+ * segments: [{ t, text }]      markers: [{ t, title, level }]
+ * photos:   [{ id, t, sectionKey? }]
+ */
+export function outline({ segments = [], markers = [], photos = [], template }) {
+  const tpl = template || getTemplate(DEFAULT_TEMPLATE);
+  const depth = tpl.levels.length;
+
+  const events = [];
+  for (const mk of markers) {
+    if (Number.isFinite(mk.t)) events.push({ t: mk.t, level: mk.level ?? 0, title: mk.title, source: 'manual' });
+  }
+  for (const seg of segments) {
+    const hit = detectMarker(seg.text, tpl);
+    if (hit) events.push({ t: seg.t, level: hit.level, title: hit.title, source: 'spoken' });
+  }
+  events.sort((a, b) => a.t - b.t || a.level - b.level);
+
+  const sections = [{ key: 'start', path: [], level: -1, t: 0, items: [] }];
+  let path = new Array(depth).fill(null);
+  for (const ev of events) {
+    const level = Math.min(Math.max(0, ev.level), depth - 1);
+    path = path.slice(0, level).concat([ev.title], new Array(depth - level - 1).fill(null));
+    sections.push({
+      key: `s-${ev.t}-${level}`,
+      path: path.filter(Boolean),
+      level,
+      t: ev.t,
+      source: ev.source,
+      items: [],
+    });
+  }
+
+  const sectionAt = (t) => {
+    let s = sections[0];
+    for (const sec of sections) if (sec.t <= t) s = sec; else break;
+    return s;
+  };
+  const byKey = new Map(sections.map((s) => [s.key, s]));
+
+  for (const seg of segments) {
+    sectionAt(seg.t).items.push({ kind: 'text', t: seg.t, text: seg.text, id: seg.id });
+  }
+  for (const p of photos) {
+    const target = (p.sectionKey && byKey.get(p.sectionKey)) || sectionAt(p.t);
+    target.items.push({ kind: 'photo', t: p.t, id: p.id });
+  }
+  for (const s of sections) s.items.sort((a, b) => a.t - b.t);
+
+  // The implicit lead-in section only shows if something happened there.
+  if (sections[0].items.length === 0 && sections.length > 1) sections.shift();
+  return sections;
+}
+
+/** Title of a section for display: "1. Obergeschoss · Zimmer 3", or "Vorlauf". */
+export function sectionTitle(section) {
+  return section.path.length ? section.path.join(' · ') : 'Vorlauf';
+}

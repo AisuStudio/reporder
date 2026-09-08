@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Reporder — sprechen, fotografieren, fertig</title>
+<meta name="description" content="Begehungen als durchgehende Tonaufnahme. Jedes Foto trägt den Zeitcode, gesprochene Marker gliedern den Bericht. Läuft im Browser, ohne Konto.">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#1a1a1a">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Reporder">
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="index.css">
+</head>
+<body>
+<a class="skip-link" href="#inhalt">Zum Inhalt springen</a>
+
+<p class="wip-band">
+  <strong>Work in Progress.</strong> Prototyp, Phase 1.
+  <span class="wip-nein">Alles bleibt auf diesem Gerät. Kein Konto, kein Server.</span>
+</p>
+
+<header class="site-head">
+  <div class="wrap">
+    <div>
+      <p class="wordmark">REPORDER<span class="dot">.</span></p>
+      <p class="tagline">Sprechen, fotografieren, fertig.</p>
+    </div>
+    <p class="stand" id="storage-note"></p>
+  </div>
+</header>
+
+<main id="inhalt" class="wrap">
+
+  <p class="lead">Vor Ort nur sprechen und auslösen. Die Zuordnung macht die Zeitachse.</p>
+  <p class="lead-dazu">
+    Reporder schneidet eine Begehung als durchgehende Tonaufnahme mit. Jedes Foto trägt den
+    Zeitcode der Aufnahme, gesprochene Marker wie „Erster Stock, Zimmer 3" gliedern den Bericht.
+  </p>
+
+  <form class="start" id="start-form" autocomplete="off">
+    <div class="start-row">
+      <div class="field">
+        <label for="title">Bezeichnung</label>
+        <input type="text" id="title" name="title" placeholder="z. B. Kita Sansibar, Abnahme Rohbau" maxlength="120">
+      </div>
+      <div class="field">
+        <label for="template">Vorlage</label>
+        <select id="template" name="template"></select>
+      </div>
+    </div>
+    <p class="hint" id="template-hint"></p>
+    <button type="submit" class="accent big">Aufnahme starten <span class="pfeil" aria-hidden="true">→</span></button>
+    <p class="hint device-note" id="device-note" hidden></p>
+  </form>
+
+  <section class="kapitel" id="sessions-section">
+    <h2>Aufnahmen</h2>
+    <p class="hint" id="sessions-empty">Noch keine. Die erste Aufnahme erscheint hier, sobald sie beendet ist.</p>
+    <ul class="sessions" id="sessions"></ul>
+  </section>
+
+  <section class="kapitel">
+    <h2>Was es tut</h2>
+    <ul class="tutliste">
+      <li>Nimmt <strong>durchgehend Ton auf</strong>, solange die Begehung läuft. Kein Anhalten, kein Formular.</li>
+      <li>Hängt <strong>jedes Foto an den Zeitcode</strong> der Aufnahme, nicht an die Uhrzeit.</li>
+      <li>Erkennt <strong>gesprochene Marker</strong> und gliedert danach: Geschoss, Raum, Bereich, Abschnitt, je nach Vorlage.</li>
+      <li>Baut daraus einen <strong>Bericht</strong>, in dem jedes Foto bei dem Satz steht, der gerade gesprochen wurde. Zum Drucken oder als PDF.</li>
+    </ul>
+  </section>
+
+  <section class="kapitel">
+    <h2>Was es nicht tut</h2>
+    <ul class="nichttut">
+      <li><strong>Es transkribiert nicht live.</strong> Vor Ort zählt nur, dass die Aufnahme läuft. Die Mitschrift ist ein Experiment und so beschriftet.</li>
+      <li><strong>Es nimmt nicht bei gesperrtem Bildschirm auf.</strong> Das kann ein Browser nicht. Der Bildschirm bleibt während der Aufnahme an.</li>
+      <li><strong>Es schickt nichts weg.</strong> Kein Konto, kein Server, keine Übertragung.</li>
+    </ul>
+  </section>
+
+  <section class="kapitel">
+    <h2>Wo Ihre Aufnahmen bleiben</h2>
+    <p>
+      Auf diesem Gerät, im Speicher dieses Browsers. Fotos und Ton bleiben Originaldateien,
+      das Protokoll ist eine lesbare JSON-Datei. Wer den Browser-Speicher löscht, löscht die
+      Aufnahmen. Als Nächstes: Export als Ordner, danach der eigene Cloud-Speicher.
+    </p>
+  </section>
+
+</main>
+
+<footer class="site-foot">
+  <div class="wrap">
+    <p>Läuft vollständig im Browser. Keine Anmeldung, keine Übertragung. Mikrofon und Kamera werden nur während einer Aufnahme benutzt.</p>
+    <p class="foot-meta">
+      <span>dominikheilig.com &copy;2026</span>
+      <a href="https://dominikheilig.com/privacy" target="_blank" rel="noreferrer">Impressum &amp; Datenschutz &#8599;</a>
+    </p>
+  </div>
+</footer>
+
+<script type="module" src="index.js"></script>
+</body>
+</html>

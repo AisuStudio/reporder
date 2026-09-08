@@ -1,0 +1,19 @@
+# Runs the unit tests on every PR and every push to main. There are no
+# dependencies to install and nothing here talks to the network.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - run: npm test

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Reporder — Aufnahme</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#1a1a1a">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="record.css">
+</head>
+<body class="record">
+
+<header class="rec-head">
+  <div class="rec-head-left">
+    <p class="wordmark"><a href="index.html" id="back-link">REPORDER<span class="dot">.</span></a></p>
+    <p class="rec-title" id="rec-title">—</p>
+  </div>
+  <p class="rec-clock tc" id="clock" aria-live="off">00:00</p>
+</header>
+
+<main class="rec-main">
+
+  <div class="viewfinder" id="viewfinder">
+    <video id="video" autoplay playsinline muted></video>
+    <p class="viewfinder-note" id="camera-note" hidden></p>
+    <div class="flash" id="flash" aria-hidden="true"></div>
+    <p class="rec-dot" id="rec-dot" hidden><span></span> AUFNAHME</p>
+  </div>
+
+  <p class="status" id="status" aria-live="polite"></p>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+  <ul class="strip" id="strip" aria-label="Fotos dieser Aufnahme"></ul>
+
+  <div class="marker" id="marker-panel">
+    <div class="modes" id="marker-levels" role="group" aria-label="Ebene"></div>
+    <div class="marker-row">
+      <input type="text" id="marker-title" placeholder="Abschnitt, z. B. Zimmer 3" maxlength="80" autocomplete="off" enterkeyhint="done">
+      <button type="button" class="secondary" id="marker-set">Marker</button>
+    </div>
+    <p class="hint marker-hint" id="marker-hint"></p>
+  </div>
+
+  <details class="live" id="live-panel">
+    <summary>Live-Mitschrift <span class="tag">Experiment</span></summary>
+    <p class="hint">Die Spracherkennung des Browsers schreibt mit und erkennt gesprochene Marker. Braucht Netz, bricht in Safari nach Pausen ab. Der Bericht funktioniert auch ohne.</p>
+    <label class="check"><input type="checkbox" id="live-toggle"> Mitschrift einschalten</label>
+    <p class="live-text" id="live-text"></p>
+  </details>
+
+</main>
+
+<footer class="rec-controls">
+  <button type="button" class="secondary ctl" id="btn-pause" disabled>Pause</button>
+  <button type="button" class="shutter" id="btn-shutter" aria-label="Foto aufnehmen" disabled><span></span></button>
+  <button type="button" class="ctl" id="btn-main">Starten</button>
+</footer>
+
+<script type="module" src="record.js"></script>
+</body>
+</html>
