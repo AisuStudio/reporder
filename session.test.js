@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  FORMAT, VERSION, createSession, addPhoto, addMarker, addSegment, setPhotoSection,
+  FORMAT, VERSION, createSession, addPhoto, addMarker, addSegment, setPhotoSection, setPhotoNote,
   migrate, serialize, parse, photoFileName, audioFileName,
 } from './session.js';
 
@@ -20,6 +20,7 @@ test('a session survives the round trip through text unchanged', () => {
   addSegment(s, { t: 2000, text: 'Putz abgeplatzt' });
   const p = addPhoto(s, { t: 2500, width: 1600, height: 1200 });
   setPhotoSection(s, p.id, 's-1000-0');
+  setPhotoNote(s, p.id, 'Riss 40 cm, Estrich, Fa. Müller');
   const back = parse(serialize(s));
   assert.deepEqual(back, s);
 });
@@ -64,4 +65,14 @@ test('exported media get plain file names by type', () => {
   assert.equal(audioFileName({ audio: { type: 'audio/webm;codecs=opus' } }), 'audio.webm');
   assert.equal(audioFileName({ audio: { type: 'audio/mp4' } }), 'audio.m4a');
   assert.equal(audioFileName({ audio: null }), 'audio.webm');
+});
+
+test('a photo carries its entry, and an empty entry leaves no trace', () => {
+  const s = createSession();
+  const p = addPhoto(s, { t: 100 });
+  setPhotoNote(s, p.id, '  Fuge gerissen  ');
+  assert.equal(p.note, 'Fuge gerissen');
+  setPhotoNote(s, p.id, '   ');
+  assert.equal('note' in p, false);
+  assert.throws(() => setPhotoNote(s, 'nope', 'x'), /unknown photo/);
 });

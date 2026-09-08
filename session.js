@@ -27,7 +27,7 @@ export function createSession({ title = '', template = 'site', now = new Date() 
     audio: null,          // { type: 'audio/webm', chunks: 12 } once recorded
     segments: [],         // { id, t, text, source: 'live' | 'manual' | 'transcript' }
     markers: [],          // { id, t, title ('' until named), level }
-    photos: [],           // { id, t, type: 'image/jpeg', width, height, sectionKey? }
+    photos: [],           // { id, t, type: 'image/jpeg', width, height, sectionKey?, note? }
     notes: '',
   };
 }
@@ -61,6 +61,15 @@ export function setPhotoSection(session, photoId, sectionKey) {
   const photo = session.photos.find((p) => p.id === photoId);
   if (!photo) throw new Error(`unknown photo: ${photoId}`);
   if (sectionKey) photo.sectionKey = sectionKey; else delete photo.sectionKey;
+  return photo;
+}
+
+/** The entry under a photo: finding, measure, who is responsible. Data, not event. */
+export function setPhotoNote(session, photoId, note) {
+  const photo = session.photos.find((p) => p.id === photoId);
+  if (!photo) throw new Error(`unknown photo: ${photoId}`);
+  const text = String(note ?? '').trim();
+  if (text) photo.note = text; else delete photo.note;
   return photo;
 }
 

@@ -3,7 +3,7 @@
 // never the events — a photo keeps its `t` wherever the user moves it.
 
 import { getTemplate, outline, sectionTitle, detectMarker, nameMarkersFromSegments } from './templates.js';
-import { addMarker, setPhotoSection, serialize, audioFileName } from './session.js';
+import { addMarker, setPhotoSection, setPhotoNote, serialize, audioFileName } from './session.js';
 import { getSession, putSession, getMedia, getAudioBlob } from './storage.js';
 import { formatTimecode, formatDate, fileStamp } from './time.js';
 
@@ -90,6 +90,11 @@ function contextFor(photoT, items) {
     if (Math.abs(d) <= 20000 && (best == null || score < best.score)) best = { it, score };
   }
   return best ? best.it.text : '';
+}
+
+function autosize(el) {
+  el.style.height = 'auto';
+  el.style.height = `${el.scrollHeight}px`;
 }
 
 function newSectionPrompt(t) {
@@ -203,6 +208,16 @@ async function render() {
         if (ctx) { const c = document.createElement('span'); c.className = 'context'; c.textContent = `„${ctx}"`; cap.append(c); }
         fig.append(img, cap);
         box.append(fig);
+
+        // The entry under the photo: what the reader of the report needs to know.
+        const note = document.createElement('textarea');
+        note.className = 'photo-note'; note.rows = 2;
+        note.placeholder = 'Eintrag zum Foto: Befund, Maß, Zuständigkeit …';
+        note.setAttribute('aria-label', 'Eintrag zum Foto');
+        note.value = photo?.note || '';
+        note.addEventListener('input', () => { setPhotoNote(session, it.id, note.value); save(); autosize(note); });
+        box.append(note);
+        requestAnimationFrame(() => autosize(note));
 
         const tools = document.createElement('div'); tools.className = 'item-tools';
         const sel = document.createElement('select');

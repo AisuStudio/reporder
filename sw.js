@@ -23,13 +23,15 @@ self.addEventListener('activate', (event) => {
 });
 
 // Network first for the shell (so an update lands on the next load), cache as
-// the fallback when offline.
+// the fallback when offline. `cache: 'no-cache'` makes the browser revalidate
+// with the server instead of trusting its HTTP cache: otherwise a deploy can
+// pair a fresh report.js with a stale session.js and the import fails.
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
   if (url.origin !== self.location.origin) return;
   event.respondWith(
-    fetch(event.request)
+    fetch(event.request, { cache: 'no-cache' })
       .then((res) => {
         const copy = res.clone();
         caches.open(CACHE).then((c) => c.put(event.request, copy)).catch(() => {});
